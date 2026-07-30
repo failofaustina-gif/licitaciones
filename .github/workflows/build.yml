@@ -1,0 +1,53 @@
+name: Actualizar informe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "datos_informe.xlsx"
+      - "build_informe.py"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repo
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          pip install openpyxl playwright
+          playwright install --with-deps chromium
+
+      - name: Generar informe.html e informe.pdf
+        run: python build_informe.py
+
+      - name: Preparar carpeta pública
+        run: |
+          mkdir -p public
+          cp informe.html public/index.html
+          cp informe.pdf public/informe.pdf || true
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Publicar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
