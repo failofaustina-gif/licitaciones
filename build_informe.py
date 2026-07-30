@@ -276,13 +276,6 @@ HTML = f"""<!DOCTYPE html>
 
   <div class="section" style="padding-top:26px;"><div class="section-label">Parte 3</div><div class="section-title">Lectura: ¿plazo y tasa mejoraron juntos o no?</div></div>
   <div class="section" style="padding-top:0;padding-bottom:6px;">{coy_html}</div>
-  <div class="section" style="padding-top:4px;padding-bottom:0;">
-    <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:6px 0 0;">
-      <b style="color:var(--navy);">En criollo:</b> el mercado le presta cómodo al Tesoro en dólar linked corto (poca expectativa de devaluación inmediata),
-      pero desconfía de comprometerse a pesos o a cobertura cambiaria más allá de unos meses — ahí exige plazos cortos y tasas más altas. Premia lo corto, castiga lo largo.
-    </p>
-  </div>
-
   <div class="section" style="padding-top:26px;"><div class="section-label">Parte 4</div><div class="section-title">¿En qué puso la plata el Tesoro?</div></div>
   <div class="donut-wrap">
     <svg width="200" height="200" viewBox="0 0 200 200">
@@ -303,14 +296,6 @@ HTML = f"""<!DOCTYPE html>
 
   <div class="section" style="padding-top:26px;"><div class="section-label">Parte 6</div><div class="section-title">¿Cómo queda la cantidad de pesos en la economía?</div></div>
   <div class="section" style="padding-top:0;padding-bottom:6px;">{monet_html}</div>
-  <div class="section" style="padding-top:4px;padding-bottom:0;">
-    <p style="font-size:13.5px;color:var(--ink-soft);line-height:1.55;margin:6px 0 0;">
-      <b style="color:var(--navy);">En criollo:</b> el BCRA emite pesos cuando compra dólares para acumular reservas.
-      El Tesoro le pide prestado ese mismo mercado a través de licitaciones como ésta y reabsorbe la mayor parte de esos pesos.
-      Resultado neto: la base monetaria crece mucho menos de lo que se emitió — es la esterilización en acción, y esta licitación fue una pieza de ese engranaje.
-    </p>
-  </div>
-
   <div class="footer">{fuente_txt}</div>
 
 </div>
