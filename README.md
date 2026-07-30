@@ -3,25 +3,24 @@
 Informe visual (una página) sobre cada licitación de deuda de la Secretaría de Finanzas:
 rollover, tasas vs. licitación anterior, composición de lo colocado, vencimientos e impacto monetario.
 
-## Cómo actualizarlo
+## Ver el informe
 
-1. Abrí `datos_informe.xlsx` y editá los datos de la licitación nueva (hojas: Portada, Rollover, Tasas,
+**https://failofaustina-gif.github.io/licitaciones/**
+
+Esta página se actualiza sola cada vez que se sube un `datos_informe.xlsx` nuevo (no hace falta descargar nada ni correr comandos).
+
+## Cómo actualizarlo (para la próxima licitación)
+
+1. Editá `datos_informe.xlsx` con los datos de la licitación nueva (hojas: Portada, Rollover, Tasas,
    Coyuntura, Composición, Timeline, Monetización, Fuentes).
-2. Corré:
-   ```bash
-   pip install openpyxl playwright
-   playwright install chromium
-   python3 build_informe.py
-   ```
-3. Esto genera `informe.html` e `informe.pdf` actualizados en la misma carpeta.
+2. Subilo al repo reemplazando el archivo actual: **Add file → Upload files** → arrastrás el Excel → **Commit changes**.
+3. Andá a la pestaña **Actions** y esperá el tilde verde (1-2 minutos).
+4. Refrescá la URL de arriba — ya está actualizada.
 
 ## Estructura
 
 - `datos_informe.xlsx` — los datos (lo único que hay que tocar para actualizar).
 - `build_informe.py` — genera el HTML/PDF a partir del Excel.
-- `informe_28-07-2026.pdf` — último informe generado.
+- `.github/workflows/build.yml` — automatización: corre el script y publica en GitHub Pages en cada actualización del Excel.
+- `informe_28-07-2026.pdf` — copia del primer informe generado.
 
-## Colaborar
-
-Ambos pueden editar `datos_informe.xlsx` y correr el script. Recomendado: cada licitación en un
-commit separado, nombrando el PDF con la fecha (`informe_DD-MM-AAAA.pdf`).
