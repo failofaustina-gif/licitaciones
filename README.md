@@ -1,13 +1,13 @@
 # Seguimiento de licitaciones del Tesoro
 
-Informe visual (una página) sobre cada licitación de deuda de la Secretaría de Finanzas:
+Informe sobre cada licitación de deuda de la Secretaría de Finanzas:
 rollover, tasas vs. licitación anterior, composición de lo colocado, vencimientos e impacto monetario.
 
 ## Ver el informe
 
 **https://failofaustina-gif.github.io/licitaciones/**
 
-Esta página se actualiza sola cada vez que se sube un `datos_informe.xlsx` nuevo (no hace falta descargar nada ni correr comandos).
+Esta página se actualiza sola cada vez que se sube un `datos_informe.xlsx` nuevo.
 
 ## Cómo actualizarlo (para la próxima licitación)
 
