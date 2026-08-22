@@ -178,7 +178,7 @@
           tienen dato, se suman los valores multiplicados por su coeficiente (poné negativo para restar).
           series.xlsm no siempre desagrega partidas como swaps o encajes en dólares como columnas propias —
           fijate qué series de "Reservas" e "Instrumentos del BCRA" tenés disponibles y armá la aproximación
-          que te resulte más razonable.</p>
+          que te resulte más razonable.</div>
         <div class="dropzone" id="calc-drop" data-target="calc"><span class="empty-hint">Arrastrá variables acá para sumarlas/restarlas…</span></div>
         <div id="calc-result-wrap"></div>
         <div class="chart-card"><div class="chart-wrap small"><canvas id="calc-chart"></canvas></div></div>
@@ -610,7 +610,8 @@ function renderLicitacion(){
   chartHost.innerHTML = '<div class="chart-wrap small"><canvas id="lic-chart"></canvas></div>';
   el.appendChild(chartHost);
 
-  const idsToShow = ['BM_3','INS_2','INS_7','RES_3'].filter(id => seriesById[id]);
+  // se usan niveles (stocks), no variaciones diarias, para que la normalización a base 100 tenga sentido
+  const idsToShow = ['BM_30','INS_2','INS_7','RES_3'].filter(id => seriesById[id]);
   let dates, windowNote;
   if (lic.fecha) {
     const center = new Date(lic.fecha);
@@ -630,18 +631,24 @@ function renderLicitacion(){
     return {id, map: new Map(pts)};
   });
   const dts = Array.from(allDates).sort();
-  const datasets = seriesData.map((sd,i) => ({
-    label: seriesById[sd.id].label, data: dts.map(d => sd.map.has(d)?sd.map.get(d):null),
-    borderColor: colorFor(i), backgroundColor: colorFor(i)+'22', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15
-  }));
+  // las 4 series tienen escalas muy distintas (variación diaria vs. stocks) — se normaliza cada una
+  // a base 100 en su primer dato de la ventana para poder compararlas en el mismo eje.
+  const datasets = seriesData.map((sd,i) => {
+    const rawVals = dts.map(d => sd.map.has(d) ? sd.map.get(d) : null);
+    const firstIdx = rawVals.findIndex(v => v !== null && v !== 0);
+    const base = firstIdx >= 0 ? Math.abs(rawVals[firstIdx]) : null;
+    const vals = base ? rawVals.map(v => v !== null ? (v/base*100) : null) : rawVals;
+    return { label: seriesById[sd.id].label, data: vals,
+      borderColor: colorFor(i), backgroundColor: colorFor(i)+'22', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15 };
+  });
   new Chart(document.getElementById('lic-chart'), {
     type:'line', data:{labels: dts.map(fmtDate), datasets},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},
-      scales:{x:{ticks:{maxTicksLimit:10,font:{size:10}}}, y:{ticks:{font:{size:10}}}}}
+      scales:{x:{ticks:{maxTicksLimit:10,font:{size:10}}}, y:{title:{display:true,text:'índice, base 100 = primer dato de la ventana',font:{size:10}}, ticks:{font:{size:10}}}}}
   });
   const noteEl = document.createElement('p');
   noteEl.className = 'section-sub'; noteEl.style.marginTop = '10px'; noteEl.textContent = windowNote +
-    ' Se grafica la variación diaria de la base monetaria, el stock de pases pasivos y de letras/notas del BCRA, y las reservas — para leer si hubo esterilización/absorción de pesos alrededor de la licitación. Este cruce sólo refleja la última licitación cargada en datos_informe.xlsx (el archivo se sobreescribe en cada actualización manual).';
+    ' Se grafica (normalizado a base 100 al inicio de la ventana, para poder comparar escalas muy distintas) el nivel de la base monetaria, el stock de pases pasivos y de letras/notas del BCRA, y las reservas — una línea que sube menos (o baja) que las demás alrededor de la licitación es una señal de esterilización/absorción de pesos. Este cruce sólo refleja la última licitación cargada en datos_informe.xlsx (el archivo se sobreescribe en cada actualización manual).';
   el.appendChild(noteEl);
 }
 
