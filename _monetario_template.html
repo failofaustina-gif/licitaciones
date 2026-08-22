@@ -105,6 +105,17 @@
   .lic-card .k{font-size:11px;color:var(--ink-soft);}
   .lic-card .v{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--navy);margin-top:3px;}
 
+  .io-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .io-col-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+  .io-summary{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;}
+  .io-summary .box{flex:1;min-width:180px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;
+    border-radius:14px;padding:16px 20px;}
+  .io-summary .box.alt{background:linear-gradient(135deg,#1E8A5F,#3FA796);}
+  .io-summary .box .lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:#E3F0FF;margin-bottom:6px;}
+  .io-summary .box .val{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;}
+  .io-summary .box .note{font-size:11px;color:#E3F0FF;margin-top:4px;}
+  @media (max-width:640px){ .io-grid{grid-template-columns:1fr;} }
+
   .insight-list{display:grid;gap:12px;}
   .insight{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;
     padding:14px 16px;}
@@ -209,11 +220,23 @@
         <div class="insight-list" id="insight-list"></div>
 
         <div class="section-title" style="font-size:15px;margin-top:22px;">Dinero interno vs. dinero externo</div>
-        <p class="section-sub">Aproximación al esquema de <b>outside money</b> (pasivo del BCRA/Estado, respaldo directo
-          del sector privado — se usa la base monetaria) vs. <b>inside money</b> (creado dentro del sistema bancario
-          vía crédito, que en el agregado se compensa entre acreedores y deudores privados — se aproxima como M2 menos
-          la base monetaria). Es una simplificación: no descuenta encajes ni otros pasivos del BCRA no incluidos en
-          la base monetaria.</p>
+        <p class="section-sub"><b>Outside money</b>: pasivo del BCRA/Estado, respaldo directo del sector privado
+          (por defecto, la base monetaria). <b>Inside money</b>: creado dentro del sistema bancario vía crédito,
+          que en el agregado se compensa entre acreedores y deudores privados (por defecto, M2 menos la base
+          monetaria). Son solo un punto de partida — arrastrá variables a cada casillero para armar tu propia
+          definición (por ejemplo, sumar pases y letras del BCRA al lado externo, o separar depósitos del sector
+          privado de los totales).</p>
+        <div class="io-grid">
+          <div class="io-col">
+            <div class="io-col-title">Dinero externo (outside money)</div>
+            <div class="dropzone" id="io-outside-drop" data-target="io-outside"><span class="empty-hint">Arrastrá variables acá…</span></div>
+          </div>
+          <div class="io-col">
+            <div class="io-col-title">Dinero interno (inside money)</div>
+            <div class="dropzone" id="io-inside-drop" data-target="io-inside"><span class="empty-hint">Arrastrá variables acá…</span></div>
+          </div>
+        </div>
+        <div id="io-result-wrap"></div>
         <div class="chart-card"><div class="chart-wrap small"><canvas id="io-chart"></canvas></div></div>
       </div>
 
@@ -265,10 +288,15 @@ function fmtDate(iso){
 }
 
 // ---------- estado (persistido en localStorage) ----------
-let state = {chart: [], calc: [], pie: []};
+const IO_DEFAULT = {
+  outside: [{id:'BM_30', coef:1}],
+  inside: [{id:'DEP_29', coef:1}, {id:'BM_30', coef:-1}],
+};
+let state = {chart: [], calc: [], pie: [], io: null};
+let hadSavedIO = false;
 try {
   const saved = JSON.parse(localStorage.getItem('monetario_state') || 'null');
-  if (saved) state = Object.assign(state, saved);
+  if (saved) { state = Object.assign(state, saved); hadSavedIO = !!(saved.io); }
 } catch(e) {}
 function saveState(){
   try { localStorage.setItem('monetario_state', JSON.stringify(state)); } catch(e) {}
@@ -277,6 +305,15 @@ function saveState(){
 state.chart = state.chart.filter(id => seriesById[id]);
 state.calc = (state.calc||[]).filter(x => seriesById[x.id]);
 state.pie = state.pie.filter(id => seriesById[id]);
+if (!hadSavedIO || !state.io) {
+  state.io = {
+    outside: IO_DEFAULT.outside.filter(x => seriesById[x.id]),
+    inside: IO_DEFAULT.inside.filter(x => seriesById[x.id]),
+  };
+} else {
+  state.io.outside = (state.io.outside||[]).filter(x => seriesById[x.id]);
+  state.io.inside = (state.io.inside||[]).filter(x => seriesById[x.id]);
+}
 
 // ---------- sidebar ----------
 const groupsEl = document.getElementById('groups');
@@ -325,6 +362,7 @@ function addToActiveTab(id){
   if (t === 'grafico') addChart(id);
   else if (t === 'calculadora') addCalc(id);
   else if (t === 'composicion') addPie(id);
+  else if (t === 'insights') addIO('outside', id);
   else addChart(id); // default
 }
 
@@ -341,6 +379,8 @@ function wireDropzone(el, onDrop){
 wireDropzone(document.getElementById('chart-drop'), addChart);
 wireDropzone(document.getElementById('calc-drop'), addCalc);
 wireDropzone(document.getElementById('pie-drop'), addPie);
+wireDropzone(document.getElementById('io-outside-drop'), id => addIO('outside', id));
+wireDropzone(document.getElementById('io-inside-drop'), id => addIO('inside', id));
 
 // ---------- GRAFICO ----------
 let mainChart = null;
@@ -728,14 +768,20 @@ function renderInsights(){
       d:`BADLAR (${arNumber(badlar,1)}%) vs. tasa de política monetaria (${arNumber(tpm,1)}%, dato al ${fmtDate(seriesById['INS_11'].data[seriesById['INS_11'].data.length-1][0])} — esta serie puede estar discontinuada si el BCRA cambió de instrumento de referencia).`});
   }
 
-  const m2Now = last('DEP_29'), outsideNow = last('BM_30');
-  if (m2Now && outsideNow) {
-    const insideNow = m2Now - outsideNow;
-    const pctInside = insideNow/m2Now*100;
-    items.push({t:'Dinero interno (inside money) vs. externo (outside money)', n: arNumber(pctInside,0)+'% interno',
-      d:`De M2 ($${arNumber(m2Now/1e6,1)} bn), un ${arNumber(pctInside,0)}% ($${arNumber(insideNow/1e6,1)} bn) es dinero
-      creado dentro del sistema bancario vía crédito (inside money, aprox. M2 − base monetaria) y el resto,
-      $${arNumber(outsideNow/1e6,1)} bn, es la base monetaria (outside money). Ver el detalle y la evolución más abajo.`});
+  const io0 = computeIOSeries();
+  if (io0.dates.length) {
+    const lastIdx = io0.dates.length - 1;
+    const outsideNow = io0.outsideVals[lastIdx], insideNow = io0.insideVals[lastIdx];
+    if (outsideNow !== null && insideNow !== null) {
+      const total = outsideNow + insideNow;
+      const pctInside = total ? insideNow/total*100 : null;
+      if (pctInside !== null) {
+        items.push({t:'Dinero interno (inside money) vs. externo (outside money)', n: arNumber(pctInside,0)+'% interno',
+          d:`Con la fórmula armada en la pestaña Insights, un ${arNumber(pctInside,0)}% ($${arNumber(insideNow/1e6,1)} bn)
+          es dinero interno y el resto, $${arNumber(outsideNow/1e6,1)} bn, es dinero externo, al ${fmtDate(io0.dates[lastIdx])}.
+          Ver el detalle y la evolución en la pestaña Insights.`});
+      }
+    }
   }
 
   list.innerHTML = items.map(it => `<div class="insight"><div class="t">${it.t}</div>
@@ -743,22 +789,91 @@ function renderInsights(){
     '<p class="section-sub">No hay suficientes datos para calcular insights todavía.</p>';
 }
 
-// ---------- DINERO INTERNO vs. EXTERNO ----------
-function renderInsideOutside(){
-  const canvas = document.getElementById('io-chart');
-  if (!canvas) return;
-  const outside = seriesById['BM_30'], m2 = seriesById['DEP_29'];
-  if (!outside || !m2) { canvas.closest('.chart-card').innerHTML = '<p class="section-sub">Faltan las series necesarias (base monetaria y M2) para este gráfico.</p>'; return; }
-  const outsideMap = new Map(outside.data);
-  const m2Map = new Map(m2.data);
-  const dates = m2.data.map(([d]) => d).filter(d => outsideMap.has(d)).slice(-500);
-  const outsideVals = dates.map(d => outsideMap.get(d));
-  const insideVals = dates.map(d => m2Map.get(d) - outsideMap.get(d));
-  new Chart(canvas, {
+// ---------- DINERO INTERNO vs. EXTERNO (calculadora interactiva) ----------
+function addIO(zone, id){
+  if (!seriesById[id] || state.io[zone].find(x=>x.id===id)) return;
+  state.io[zone].push({id, coef:1}); saveState(); renderIOTab();
+}
+function removeIO(zone, id){ state.io[zone] = state.io[zone].filter(x=>x.id!==id); saveState(); renderIOTab(); }
+function setIOCoef(zone, id, val){
+  const item = state.io[zone].find(x=>x.id===id);
+  if (item) { item.coef = parseFloat(val)||0; saveState(); renderIOTab(); }
+}
+function combineZone(items){
+  // combina las variables de una zona (misma lógica que la Calculadora): intersección de fechas, suma ponderada
+  if (!items.length) return new Map();
+  const maps = items.map(({id}) => new Map(seriesById[id].data));
+  let commonDates = null;
+  maps.forEach(m => {
+    const ds = new Set(m.keys());
+    commonDates = commonDates ? new Set([...commonDates].filter(d => ds.has(d))) : ds;
+  });
+  const result = new Map();
+  Array.from(commonDates||[]).sort().forEach(d => {
+    let total = 0;
+    items.forEach(({coef}, i) => { total += coef * maps[i].get(d); });
+    result.set(d, total);
+  });
+  return result;
+}
+function computeIOSeries(){
+  const outsideMap = combineZone(state.io.outside);
+  const insideMap = combineZone(state.io.inside);
+  const allDates = new Set([...outsideMap.keys(), ...insideMap.keys()]);
+  const dates = Array.from(allDates).sort();
+  return {
+    dates,
+    outsideVals: dates.map(d => outsideMap.has(d) ? outsideMap.get(d) : null),
+    insideVals: dates.map(d => insideMap.has(d) ? insideMap.get(d) : null),
+  };
+}
+let ioChart = null;
+function renderIOZoneChips(zone, dropId){
+  const drop = document.getElementById(dropId);
+  drop.innerHTML = '';
+  if (!state.io[zone].length) drop.innerHTML = '<span class="empty-hint">Arrastrá variables acá…</span>';
+  state.io[zone].forEach(({id,coef}) => {
+    const s = seriesById[id]; if (!s) return;
+    const chip = document.createElement('span'); chip.className = 'chip';
+    chip.innerHTML = `${s.label} <input type="number" step="0.1" value="${coef}"><button title="quitar">×</button>`;
+    chip.querySelector('input').addEventListener('change', e => setIOCoef(zone, id, e.target.value));
+    chip.querySelector('button').addEventListener('click', () => removeIO(zone, id));
+    drop.appendChild(chip);
+  });
+}
+function renderIOTab(){
+  renderIOZoneChips('outside', 'io-outside-drop');
+  renderIOZoneChips('inside', 'io-inside-drop');
+
+  const resultWrap = document.getElementById('io-result-wrap');
+  const { dates, outsideVals, insideVals } = computeIOSeries();
+  if (!dates.length) {
+    resultWrap.innerHTML = '';
+    if (ioChart) { ioChart.destroy(); ioChart = null; }
+    return;
+  }
+  let lastIdx = dates.length - 1;
+  while (lastIdx >= 0 && (outsideVals[lastIdx] === null || insideVals[lastIdx] === null)) lastIdx--;
+  if (lastIdx >= 0) {
+    const outsideNow = outsideVals[lastIdx], insideNow = insideVals[lastIdx];
+    const total = outsideNow + insideNow;
+    const pct = total ? insideNow/total*100 : null;
+    resultWrap.innerHTML = `<div class="io-summary">
+      <div class="box"><div class="lbl">Dinero externo</div><div class="val">${arNumber(outsideNow,1)}</div>
+        <div class="note">al ${fmtDate(dates[lastIdx])}</div></div>
+      <div class="box alt"><div class="lbl">Dinero interno</div><div class="val">${arNumber(insideNow,1)}</div>
+        <div class="note">${pct!==null ? arNumber(pct,0)+'% del total' : ''}</div></div>
+    </div>`;
+  } else {
+    resultWrap.innerHTML = '<p class="section-sub">Las variables elegidas en cada casillero no comparten ninguna fecha en común entre sí.</p>';
+  }
+
+  if (ioChart) ioChart.destroy();
+  ioChart = new Chart(document.getElementById('io-chart'), {
     type: 'line',
     data: { labels: dates.map(fmtDate), datasets: [
-      { label:'Dinero externo (base monetaria)', data: outsideVals, borderColor: colorFor(0), backgroundColor: colorFor(0)+'33', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15, fill:true, stack:'io' },
-      { label:'Dinero interno (M2 − base monetaria)', data: insideVals, borderColor: colorFor(1), backgroundColor: colorFor(1)+'33', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15, fill:true, stack:'io' },
+      { label:'Dinero externo', data: outsideVals, borderColor: colorFor(0), backgroundColor: colorFor(0)+'33', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15, fill:true, stack:'io' },
+      { label:'Dinero interno', data: insideVals, borderColor: colorFor(1), backgroundColor: colorFor(1)+'33', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15, fill:true, stack:'io' },
     ]},
     options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
       plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},
@@ -773,8 +888,8 @@ renderCalcTab();
 renderPieTab();
 setupLicSelect();
 renderLicitacion();
+renderIOTab();
 renderInsights();
-renderInsideOutside();
 </script>
 </body>
 </html>
