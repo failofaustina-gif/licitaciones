@@ -4,9 +4,13 @@ Dos páginas sobre la coyuntura monetaria argentina, publicadas en el mismo siti
 
 1. **Licitaciones del Tesoro** — informe por licitación de deuda de la Secretaría de Finanzas:
    rollover, tasas vs. licitación anterior, composición de lo colocado, vencimientos e impacto monetario.
-2. **Indicadores monetarios (BCRA)** — base monetaria, reservas internacionales, depósitos, préstamos,
-   tasas de mercado e instrumentos del BCRA, actualizados automáticamente todos los días hábiles a partir
-   del archivo [`series.xlsm`](https://www.bcra.gob.ar/datos-monetarios-diarios/) del Banco Central.
+2. **Indicadores monetarios (BCRA)** — explorador interactivo con las ~150 series de
+   [`series.xlsm`](https://www.bcra.gob.ar/datos-monetarios-diarios/) (base monetaria, reservas, depósitos,
+   préstamos, tasas de mercado e instrumentos del BCRA), actualizado automáticamente todos los días hábiles.
+   Se puede arrastrar cualquier variable a un gráfico, armar cálculos propios (por ejemplo, una aproximación
+   de reservas netas), ver composiciones en gráfico de torta, y cruzar la última licitación del Tesoro
+   cargada en `datos_informe.xlsx` con el movimiento de la base monetaria e instrumentos del BCRA alrededor
+   de esa fecha.
 
 ## Ver el sitio
 
@@ -34,9 +38,14 @@ Dos páginas sobre la coyuntura monetaria argentina, publicadas en el mismo siti
 - `datos_informe.xlsx` — los datos de licitaciones (lo único que hay que tocar para actualizar ese informe).
 - `series.xlsm` — datos monetarios diarios del BCRA, se actualiza solo (no hace falta tocarlo a mano).
 - `build_informe.py` — genera `informe.html`/`informe.pdf` (licitaciones) a partir de `datos_informe.xlsx`.
-- `build_monetario.py` — genera `monetario.html` (indicadores BCRA) a partir de `series.xlsm`. Las series
-  que muestra están definidas en `SERIES_CONFIG`, al principio del archivo — se puede sumar o sacar
-  variables editando esa lista (hoja, columna y etiqueta de cada una).
+- `build_monetario.py` — vuelca **todas** las columnas numéricas de `series.xlsm` (más el cruce con
+  `datos_informe.xlsx`) a un JSON embebido en `monetario.html`; ese JSON alimenta el explorador interactivo
+  (arrastrar y soltar, calculadora, torta, insights). Las tarjetas fijas de la pestaña "Resumen" y del cruce
+  con licitaciones están definidas por id de serie (`RESUMEN_IDS` en Python y en el `<script>` del HTML) —
+  se pueden cambiar ahí.
+- `_monetario_template.html` — plantilla HTML/CSS/JS del explorador (todo el frontend); `build_monetario.py`
+  le inyecta el JSON de datos. Si se quiere tocar el diseño o la lógica de la página, es este archivo.
 - `.github/workflows/build.yml` — automatización: descarga `series.xlsm`, corre ambos scripts y publica en
   GitHub Pages, tanto en cada push a `main` como todos los días hábiles por horario.
 - `informe_28-07-2026.pdf` — copia del primer informe generado.
+

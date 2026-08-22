@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indicadores Monetarios - BCRA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0B2547; --blue:#2C5FA8; --blue-light:#E7EFFB; --sky:#5B8FD9;
+    --green:#1E8A5F; --green-light:#E6F5EE; --amber:#C2571B; --amber-light:#FCEEE3;
+    --purple:#8A5FC2; --paper:#F6F7FB; --ink:#0B2547; --ink-soft:#5B6472; --line:#DCE3EF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:#DCE3EF;font-family:'Inter',sans-serif;color:var(--ink);}
+  body{padding:24px 12px 60px;}
+  .page{width:1320px;max-width:100%;margin:0 auto;background:var(--paper);border-radius:22px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(11,37,71,.35);}
+  .hero{background:linear-gradient(135deg,var(--navy) 0%,#173B72 60%,var(--blue) 100%);color:#fff;padding:32px 40px 24px;position:relative;overflow:hidden;}
+  .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06);}
+  .eyebrow{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#AFC7EE;font-weight:600;margin-bottom:8px;}
+  h1{font-family:'Space Grotesk',sans-serif;font-size:24px;line-height:1.2;margin:0 0 6px;font-weight:700;max-width:760px;}
+  .hero p{margin:0;color:#D7E3F6;font-size:13.5px;max-width:700px;}
+  .hero a{color:#fff;}
+  .hero .backlink{color:#AFC7EE;}
+
+  .tabs{display:flex;gap:4px;padding:0 40px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;}
+  .tab-btn{border:none;background:none;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;
+    color:var(--ink-soft);padding:14px 16px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;}
+  .tab-btn:hover{color:var(--navy);}
+  .tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+
+  .layout{display:grid;grid-template-columns:280px 1fr;min-height:560px;}
+  .sidebar{border-right:1px solid var(--line);background:#fff;padding:16px;overflow-y:auto;max-height:900px;}
+  .sidebar-hint{font-size:11.5px;color:var(--ink-soft);margin:0 0 10px;line-height:1.4;}
+  #search{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;margin-bottom:10px;}
+  .group{margin-bottom:6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;}
+  .group summary{cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;
+    color:var(--navy);padding:9px 12px;background:var(--blue-light);list-style:none;}
+  .group summary::-webkit-details-marker{display:none;}
+  .group[open] summary{border-bottom:1px solid var(--line);}
+  .item{display:flex;align-items:center;gap:6px;padding:7px 10px;font-size:11.8px;color:var(--ink);cursor:grab;
+    border-bottom:1px solid #F0F2F7;line-height:1.3;}
+  .item:last-child{border-bottom:none;}
+  .item:hover{background:var(--blue-light);}
+  .item .add-btn{flex:none;width:18px;height:18px;border-radius:50%;border:1px solid var(--blue);background:#fff;
+    color:var(--blue);font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .item .add-btn:hover{background:var(--blue);color:#fff;}
+  .item .lbl{flex:1;}
+
+  .content{padding:24px 32px;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .dropzone{border:2px dashed var(--line);border-radius:14px;padding:16px;min-height:56px;display:flex;
+    flex-wrap:wrap;gap:8px;align-items:center;background:#fff;margin-bottom:16px;}
+  .dropzone.drag-over{border-color:var(--blue);background:var(--blue-light);}
+  .dropzone .empty-hint{font-size:12.5px;color:var(--ink-soft);}
+  .chip{display:flex;align-items:center;gap:6px;background:var(--blue-light);border:1px solid var(--sky);
+    border-radius:20px;padding:5px 8px 5px 12px;font-size:11.5px;color:var(--navy);}
+  .chip .swatch{width:9px;height:9px;border-radius:50%;flex:none;}
+  .chip button{border:none;background:none;color:var(--ink-soft);cursor:pointer;font-size:13px;padding:0 2px;}
+  .chip input[type=number]{width:52px;border:1px solid var(--line);border-radius:6px;padding:2px 5px;font-size:11px;font-family:inherit;}
+
+  .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+  .toolbar label{font-size:12px;color:var(--ink-soft);display:flex;align-items:center;gap:5px;}
+  .range-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-size:11.5px;
+    color:var(--ink-soft);cursor:pointer;}
+  .range-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+  .chart-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;}
+  .chart-wrap{position:relative;height:420px;}
+  .chart-wrap.small{height:300px;}
+
+  .section-title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--navy);margin:0 0 4px;}
+  .section-sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;line-height:1.5;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-bottom:18px;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;}
+  .card-label{font-size:12px;color:var(--ink-soft);line-height:1.35;min-height:30px;}
+  .card-value{font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700;color:var(--navy);margin-top:4px;}
+  .card-date{font-size:10.5px;color:var(--ink-soft);margin-top:2px;}
+  .card-chart{margin:8px 0 2px;}
+  .spark{width:100%;height:48px;display:block;}
+  .card-deltas{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-soft);
+    border-top:1px solid var(--line);padding-top:6px;margin-top:4px;}
+  .chg{font-weight:700;margin-left:3px;}
+  .chg.up{color:var(--blue);} .chg.down{color:var(--amber);} .chg.flat{color:var(--ink-soft);}
+
+  .calc-result{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;border-radius:14px;
+    padding:20px 24px;margin-bottom:16px;}
+  .calc-result .lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:#AFC7EE;margin-bottom:6px;}
+  .calc-result .val{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:700;}
+  .calc-result .note{font-size:11.5px;color:#D7E3F6;margin-top:6px;}
+  .help-box{background:var(--blue-light);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ink-soft);
+    line-height:1.55;margin-bottom:16px;}
+  .help-box b{color:var(--navy);}
+
+  .warn-box{background:var(--amber-light);color:var(--amber);border-radius:10px;padding:10px 14px;
+    font-size:12px;margin-bottom:14px;}
+
+  .lic-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:18px;}
+  .lic-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;}
+  .lic-card .k{font-size:11px;color:var(--ink-soft);}
+  .lic-card .v{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--navy);margin-top:3px;}
+
+  .insight-list{display:grid;gap:12px;}
+  .insight{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;
+    padding:14px 16px;}
+  .insight .t{font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+  .insight .d{font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
+  .insight .n{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--blue);}
+
+  .footer{padding:20px 40px 28px;font-size:10.5px;color:#8A93A3;line-height:1.7;border-top:1px solid var(--line);}
+  @media (max-width: 860px){
+    .layout{grid-template-columns:1fr;}
+    .sidebar{max-height:280px;}
+    .content{padding:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <div class="eyebrow">BCRA · Datos Monetarios Diarios</div>
+    <h1>Explorador de indicadores monetarios de la Argentina</h1>
+    <p>Arrastrá variables de series.xlsm para graficarlas, armá tus propios cálculos (por ejemplo, reservas netas)
+       y crucialas con las licitaciones del Tesoro. Último dato disponible: <b id="as-of-label">__AS_OF__</b>.
+       <br><a class="backlink" href="index.html">← Ver informe de licitaciones</a></p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="resumen">Resumen</button>
+    <button class="tab-btn" data-tab="grafico">Gráfico</button>
+    <button class="tab-btn" data-tab="calculadora">Calculadora</button>
+    <button class="tab-btn" data-tab="composicion">Composición</button>
+    <button class="tab-btn" data-tab="licitacion">Licitación ↔ Monetario</button>
+    <button class="tab-btn" data-tab="insights">Insights</button>
+  </div>
+
+  <div class="layout">
+    <div class="sidebar" id="sidebar">
+      <p class="sidebar-hint">Arrastrá una variable a un gráfico, a la calculadora o a la composición — o
+        tocá el <b>+</b> para agregarla al panel activo.</p>
+      <input id="search" type="text" placeholder="Buscar variable (ej: M2, BADLAR, reservas)…">
+      <div id="groups"></div>
+    </div>
+
+    <div class="content">
+
+      <div class="panel active" id="panel-resumen">
+        <div class="section-title">Resumen</div>
+        <p class="section-sub">Los indicadores más seguidos, con su variación diaria y mensual. Para explorar
+          cualquier otra variable del archivo, usá la pestaña <b>Gráfico</b>.</p>
+        <div class="grid" id="resumen-grid"></div>
+      </div>
+
+      <div class="panel" id="panel-grafico">
+        <div class="section-title">Gráfico</div>
+        <p class="section-sub">Soltá una o más variables acá abajo para compararlas en el tiempo.</p>
+        <div class="dropzone" id="chart-drop" data-target="chart"><span class="empty-hint">Arrastrá variables acá, o tocá el + de la lista de la izquierda…</span></div>
+        <div class="toolbar">
+          <span class="range-btn" data-range="90">3 meses</span>
+          <span class="range-btn" data-range="365">1 año</span>
+          <span class="range-btn" data-range="1095">3 años</span>
+          <span class="range-btn active" data-range="0">Todo</span>
+          <label><input type="checkbox" id="normalize-chk"> Normalizar (base 100)</label>
+        </div>
+        <div class="chart-card"><div class="chart-wrap"><canvas id="main-chart"></canvas></div></div>
+      </div>
+
+      <div class="panel" id="panel-calculadora">
+        <div class="section-title">Calculadora</div>
+        <p class="section-sub">Armá tu propia serie combinando variables — por ejemplo, una aproximación de
+          <b>reservas netas</b>: reservas brutas menos lo que quieras restar (encajes, pasivos de corto plazo, etc.).</p>
+        <div class="help-box"><b>Cómo se calcula:</b> por cada fecha en la que <i>todas</i> las variables incluidas
+          tienen dato, se suman los valores multiplicados por su coeficiente (poné negativo para restar).
+          series.xlsm no siempre desagrega partidas como swaps o encajes en dólares como columnas propias —
+          fijate qué series de "Reservas" e "Instrumentos del BCRA" tenés disponibles y armá la aproximación
+          que te resulte más razonable.</p>
+        <div class="dropzone" id="calc-drop" data-target="calc"><span class="empty-hint">Arrastrá variables acá para sumarlas/restarlas…</span></div>
+        <div id="calc-result-wrap"></div>
+        <div class="chart-card"><div class="chart-wrap small"><canvas id="calc-chart"></canvas></div></div>
+      </div>
+
+      <div class="panel" id="panel-composicion">
+        <div class="section-title">Composición</div>
+        <p class="section-sub">Soltá dos o más variables del mismo tipo para ver su peso relativo en el último dato disponible.</p>
+        <div class="dropzone" id="pie-drop" data-target="pie"><span class="empty-hint">Arrastrá variables acá (ej: los distintos tipos de depósitos)…</span></div>
+        <div id="pie-warn"></div>
+        <div class="chart-card"><div class="chart-wrap small"><canvas id="pie-chart"></canvas></div></div>
+      </div>
+
+      <div class="panel" id="panel-licitacion">
+        <div class="section-title">Licitación ↔ Monetario</div>
+        <p class="section-sub" id="lic-sub">Cruce entre la última licitación cargada en el informe de licitaciones
+          y el movimiento de la base monetaria e instrumentos del BCRA alrededor de esa fecha.</p>
+        <div id="lic-content"></div>
+      </div>
+
+      <div class="panel" id="panel-insights">
+        <div class="section-title">Insights</div>
+        <p class="section-sub">Algunas lecturas calculadas automáticamente a partir de los datos disponibles.</p>
+        <div class="insight-list" id="insight-list"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    Fuente: Gerencia de Estadísticas Monetarias - Banco Central de la República Argentina (series.xlsm,
+    datos provisorios sujetos a revisión), cruzado con datos_informe.xlsx (licitaciones del Tesoro). Cada serie
+    muestra hasta los últimos ~1000 datos hábiles disponibles; el historial completo está en series.xlsm dentro
+    del repositorio. Página generada automáticamente.
+  </div>
+</div>
+
+<script id="dashboard-data" type="application/json">__DASHBOARD_DATA__</script>
+<script>
+const DATA = JSON.parse(document.getElementById('dashboard-data').textContent);
+const seriesById = {};
+DATA.series.forEach(s => seriesById[s.id] = s);
+
+const PALETTE = ['#2C5FA8','#1E8A5F','#C2571B','#8A5FC2','#5B8FD9','#0B2547','#B4B2A9','#3FA796','#D98324','#6C4AB6'];
+function colorFor(i){ return PALETTE[i % PALETTE.length]; }
+
+const GROUP_LABELS = {
+  'BASE MONETARIA':'Base Monetaria', 'RESERVAS':'Reservas Internacionales', 'DEPOSITOS':'Depósitos',
+  'PRESTAMOS':'Préstamos', 'TASAS DE MERCADO':'Tasas de Mercado', 'INSTRUMENTOS DEL BCRA':'Instrumentos del BCRA'
+};
+
+// ---------- formato es-AR ----------
+function arNumber(n, decimals){
+  if (n === null || n === undefined || isNaN(n)) return 's/d';
+  let s = n.toLocaleString('en-US', {minimumFractionDigits:decimals, maximumFractionDigits:decimals});
+  return s.replace(/,/g,'§').replace(/\./g,',').replace(/§/g,'.');
+}
+function fmtValue(v, kind){
+  if (v === null || v === undefined) return 's/d';
+  const av = Math.abs(v);
+  if (kind === 'rate') return arNumber(v,2) + '%';
+  if (kind === 'fx') return '$' + arNumber(v,2);
+  if (kind === 'usd') return 'US$ ' + arNumber(v,0) + ' M';
+  if (av >= 1000000) return '$ ' + arNumber(v/1000000,2) + ' bn';
+  if (av >= 1000) return '$ ' + arNumber(v/1000,1) + ' mil M';
+  return '$ ' + arNumber(v,0) + ' M';
+}
+function fmtDate(iso){
+  if (!iso) return 's/d';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ---------- estado (persistido en localStorage) ----------
+let state = {chart: [], calc: [], pie: []};
+try {
+  const saved = JSON.parse(localStorage.getItem('monetario_state') || 'null');
+  if (saved) state = Object.assign(state, saved);
+} catch(e) {}
+function saveState(){
+  try { localStorage.setItem('monetario_state', JSON.stringify(state)); } catch(e) {}
+}
+// filtrar ids que ya no existan en la data actual
+state.chart = state.chart.filter(id => seriesById[id]);
+state.calc = (state.calc||[]).filter(x => seriesById[x.id]);
+state.pie = state.pie.filter(id => seriesById[id]);
+
+// ---------- sidebar ----------
+const groupsEl = document.getElementById('groups');
+const bySheet = {};
+DATA.series.forEach(s => { (bySheet[s.sheet] = bySheet[s.sheet]||[]).push(s); });
+
+function renderSidebar(filter){
+  filter = (filter||'').toLowerCase();
+  groupsEl.innerHTML = '';
+  Object.keys(GROUP_LABELS).forEach(sheet => {
+    const items = (bySheet[sheet]||[]).filter(s => !filter || s.label.toLowerCase().includes(filter));
+    if (!items.length) return;
+    const det = document.createElement('details');
+    det.className = 'group';
+    det.open = !!filter;
+    const sum = document.createElement('summary');
+    sum.textContent = `${GROUP_LABELS[sheet]} (${items.length})`;
+    det.appendChild(sum);
+    items.forEach(s => {
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.draggable = true;
+      row.dataset.id = s.id;
+      row.innerHTML = `<span class="lbl">${s.label}</span><button class="add-btn" title="Agregar al panel activo">+</button>`;
+      row.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', s.id); });
+      row.querySelector('.add-btn').addEventListener('click', () => addToActiveTab(s.id));
+      det.appendChild(row);
+    });
+    groupsEl.appendChild(det);
+  });
+}
+renderSidebar();
+document.getElementById('search').addEventListener('input', e => renderSidebar(e.target.value));
+
+// ---------- tabs ----------
+const tabBtns = document.querySelectorAll('.tab-btn');
+tabBtns.forEach(btn => btn.addEventListener('click', () => {
+  tabBtns.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+}));
+function activeTab(){ return document.querySelector('.tab-btn.active').dataset.tab; }
+function addToActiveTab(id){
+  const t = activeTab();
+  if (t === 'grafico') addChart(id);
+  else if (t === 'calculadora') addCalc(id);
+  else if (t === 'composicion') addPie(id);
+  else addChart(id); // default
+}
+
+// ---------- drop zones ----------
+function wireDropzone(el, onDrop){
+  el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('drag-over');
+    const id = e.dataTransfer.getData('text/plain');
+    if (id) onDrop(id);
+  });
+}
+wireDropzone(document.getElementById('chart-drop'), addChart);
+wireDropzone(document.getElementById('calc-drop'), addCalc);
+wireDropzone(document.getElementById('pie-drop'), addPie);
+
+// ---------- GRAFICO ----------
+let mainChart = null;
+let chartRange = 0; // dias, 0 = todo
+function addChart(id){
+  if (!seriesById[id] || state.chart.includes(id)) return;
+  state.chart.push(id); saveState(); renderChartTab();
+}
+function removeChart(id){ state.chart = state.chart.filter(x => x!==id); saveState(); renderChartTab(); }
+
+document.querySelectorAll('.range-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.range-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  chartRange = parseInt(b.dataset.range,10);
+  renderChartTab();
+}));
+document.getElementById('normalize-chk').addEventListener('change', renderChartTab);
+
+function filterRange(data){
+  if (!chartRange) return data;
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - chartRange);
+  return data.filter(([d]) => new Date(d) >= cutoff);
+}
+
+function renderChartTab(){
+  const drop = document.getElementById('chart-drop');
+  drop.innerHTML = '';
+  if (!state.chart.length) drop.innerHTML = '<span class="empty-hint">Arrastrá variables acá, o tocá el + de la lista de la izquierda…</span>';
+  state.chart.forEach((id,i) => {
+    const s = seriesById[id]; if (!s) return;
+    const chip = document.createElement('span'); chip.className = 'chip';
+    chip.innerHTML = `<span class="swatch" style="background:${colorFor(i)}"></span>${s.label}<button title="quitar">×</button>`;
+    chip.querySelector('button').addEventListener('click', () => removeChart(id));
+    drop.appendChild(chip);
+  });
+
+  const allDatesSet = new Set();
+  const seriesData = state.chart.map(id => {
+    const pts = filterRange(seriesById[id].data);
+    pts.forEach(([d]) => allDatesSet.add(d));
+    return {id, pts: new Map(pts)};
+  });
+  const dates = Array.from(allDatesSet).sort();
+
+  const datasets = seriesData.map((sd,i) => {
+    let base = null;
+    const norm = document.getElementById('normalize-chk').checked;
+    const vals = dates.map(d => {
+      const v = sd.pts.has(d) ? sd.pts.get(d) : null;
+      return v;
+    });
+    let outVals = vals;
+    if (norm) {
+      const firstIdx = vals.findIndex(v => v !== null && v !== 0);
+      const baseVal = firstIdx >= 0 ? vals[firstIdx] : null;
+      outVals = vals.map(v => (v !== null && baseVal) ? (v/baseVal*100) : null);
+    }
+    return {
+      label: seriesById[sd.id].label,
+      data: outVals,
+      borderColor: colorFor(i),
+      backgroundColor: colorFor(i) + '22',
+      spanGaps: true,
+      pointRadius: 0,
+      borderWidth: 2,
+      tension: 0.15,
+    };
+  });
+
+  if (mainChart) mainChart.destroy();
+  mainChart = new Chart(document.getElementById('main-chart'), {
+    type: 'line',
+    data: { labels: dates.map(fmtDate), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: {mode:'index', intersect:false},
+      plugins: { legend: {display: datasets.length>1, labels:{boxWidth:10, font:{size:11}}}, tooltip:{titleFont:{size:11}, bodyFont:{size:11}} },
+      scales: { x: {ticks:{maxTicksLimit:10, font:{size:10}}}, y: {ticks:{font:{size:10}}} }
+    }
+  });
+}
+
+// ---------- CALCULADORA ----------
+function addCalc(id){
+  if (!seriesById[id] || state.calc.find(x=>x.id===id)) return;
+  state.calc.push({id, coef:1}); saveState(); renderCalcTab();
+}
+function removeCalc(id){ state.calc = state.calc.filter(x=>x.id!==id); saveState(); renderCalcTab(); }
+function setCoef(id, val){
+  const item = state.calc.find(x=>x.id===id);
+  if (item) { item.coef = parseFloat(val)||0; saveState(); renderCalcTab(); }
+}
+
+let calcChart = null;
+function renderCalcTab(){
+  const drop = document.getElementById('calc-drop');
+  drop.innerHTML = '';
+  if (!state.calc.length) drop.innerHTML = '<span class="empty-hint">Arrastrá variables acá para sumarlas/restarlas…</span>';
+  state.calc.forEach(({id,coef}) => {
+    const s = seriesById[id]; if (!s) return;
+    const chip = document.createElement('span'); chip.className = 'chip';
+    chip.innerHTML = `${s.label} <input type="number" step="0.1" value="${coef}"><button title="quitar">×</button>`;
+    chip.querySelector('input').addEventListener('change', e => setCoef(id, e.target.value));
+    chip.querySelector('button').addEventListener('click', () => removeCalc(id));
+    drop.appendChild(chip);
+  });
+
+  const resultWrap = document.getElementById('calc-result-wrap');
+  if (state.calc.length < 1) {
+    resultWrap.innerHTML = '';
+    if (calcChart) { calcChart.destroy(); calcChart = null; }
+    return;
+  }
+  // intersección de fechas
+  const maps = state.calc.map(({id}) => new Map(seriesById[id].data));
+  let commonDates = null;
+  maps.forEach(m => {
+    const ds = new Set(m.keys());
+    commonDates = commonDates ? new Set([...commonDates].filter(d => ds.has(d))) : ds;
+  });
+  const dates = Array.from(commonDates||[]).sort();
+  const result = dates.map(d => {
+    let total = 0;
+    state.calc.forEach(({id,coef}, i) => { total += coef * maps[i].get(d); });
+    return total;
+  });
+
+  const lastVal = result.length ? result[result.length-1] : null;
+  const lastDate = dates.length ? dates[dates.length-1] : null;
+  resultWrap.innerHTML = `<div class="calc-result">
+      <div class="lbl">Resultado de la fórmula</div>
+      <div class="val">${lastVal===null ? 'sin datos en común' : arNumber(lastVal,1)}</div>
+      <div class="note">${lastDate ? 'al ' + fmtDate(lastDate) + ' · calculado sobre ' + dates.length + ' fechas en común' : 'las variables elegidas no comparten ninguna fecha'}</div>
+    </div>`;
+
+  if (calcChart) calcChart.destroy();
+  calcChart = new Chart(document.getElementById('calc-chart'), {
+    type: 'line',
+    data: { labels: dates.map(fmtDate), datasets: [{ label:'Fórmula', data: result, borderColor: '#2C5FA8',
+      backgroundColor:'#2C5FA822', pointRadius:0, borderWidth:2, tension:0.15, fill:true }] },
+    options: { responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}}, scales:{x:{ticks:{maxTicksLimit:10,font:{size:10}}}, y:{ticks:{font:{size:10}}}} }
+  });
+}
+
+// ---------- COMPOSICION ----------
+let pieChart = null;
+function addPie(id){
+  if (!seriesById[id] || state.pie.includes(id)) return;
+  state.pie.push(id); saveState(); renderPieTab();
+}
+function removePie(id){ state.pie = state.pie.filter(x=>x!==id); saveState(); renderPieTab(); }
+function renderPieTab(){
+  const drop = document.getElementById('pie-drop');
+  drop.innerHTML = '';
+  if (!state.pie.length) drop.innerHTML = '<span class="empty-hint">Arrastrá variables acá (ej: los distintos tipos de depósitos)…</span>';
+  state.pie.forEach((id,i) => {
+    const s = seriesById[id]; if (!s) return;
+    const chip = document.createElement('span'); chip.className = 'chip';
+    chip.innerHTML = `<span class="swatch" style="background:${colorFor(i)}"></span>${s.label}<button title="quitar">×</button>`;
+    chip.querySelector('button').addEventListener('click', () => removePie(id));
+    drop.appendChild(chip);
+  });
+
+  const warnEl = document.getElementById('pie-warn');
+  const kinds = new Set(state.pie.map(id => seriesById[id].kind));
+  warnEl.innerHTML = (kinds.size > 1) ?
+    '<div class="warn-box">Elegiste variables de distinto tipo (por ejemplo, tasas mezcladas con montos) — el gráfico de torta va a comparar magnitudes que no son directamente comparables.</div>' : '';
+
+  const labels = [], values = [], colors = [];
+  state.pie.forEach((id,i) => {
+    const s = seriesById[id];
+    if (!s.data.length) return;
+    labels.push(s.label);
+    values.push(Math.abs(s.data[s.data.length-1][1]));
+    colors.push(colorFor(i));
+  });
+
+  if (pieChart) pieChart.destroy();
+  pieChart = new Chart(document.getElementById('pie-chart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderColor:'#fff', borderWidth:2 }] },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right', labels:{font:{size:11}}}} }
+  });
+}
+
+// ---------- RESUMEN (tarjetas fijas) ----------
+const RESUMEN_IDS = ['BM_30','BM_3','RES_3','RES_16','DEP_23','DEP_24','PRE_21','TAS_2','TAS_9','TAS_12','INS_11','INS_2','INS_7'];
+function sparkSvg(pts, color){
+  if (pts.length < 2) return '';
+  const vals = pts.map(p=>p[1]);
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const span = (hi-lo) || 1;
+  const W=280,H=56,P=4;
+  const n = vals.length;
+  const xs = vals.map((_,i) => P + i*(W-2*P)/(n-1));
+  const ys = vals.map(v => H-P-(v-lo)/span*(H-2*P));
+  const line = xs.map((x,i)=>`${x.toFixed(1)},${ys[i].toFixed(1)}`).join(' ');
+  const area = `${xs[0].toFixed(1)},${H} ${line} ${xs[n-1].toFixed(1)},${H}`;
+  return `<svg viewBox="0 0 ${W} ${H}" class="spark" preserveAspectRatio="none">
+    <polygon points="${area}" fill="${color}" opacity="0.12"/>
+    <polyline points="${line}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${xs[n-1].toFixed(1)}" cy="${ys[n-1].toFixed(1)}" r="3.2" fill="${color}"/>
+  </svg>`;
+}
+function deltaBadge(curr, prev, kind){
+  if (prev === null || prev === undefined) return '';
+  if (kind === 'rate') {
+    const d = curr - prev;
+    const cls = d>0?'up':(d<0?'down':'flat'); const arrow = d>0?'▲':(d<0?'▼':'—');
+    return `<span class="chg ${cls}">${arrow} ${arNumber(Math.abs(d),2)} p.p.</span>`;
+  }
+  if (!prev) return '';
+  const pct = (curr-prev)/Math.abs(prev)*100;
+  const cls = pct>0?'up':(pct<0?'down':'flat'); const arrow = pct>0?'▲':(pct<0?'▼':'—');
+  return `<span class="chg ${cls}">${arrow} ${arNumber(Math.abs(pct),1)}%</span>`;
+}
+function renderResumen(){
+  const grid = document.getElementById('resumen-grid');
+  grid.innerHTML = '';
+  RESUMEN_IDS.forEach((id,i) => {
+    const s = seriesById[id]; if (!s || !s.data.length) return;
+    const pts = s.data;
+    const [lastDate, lastVal] = pts[pts.length-1];
+    const prevVal = pts.length>=2 ? pts[pts.length-2][1] : null;
+    const monthVal = pts.length>21 ? pts[pts.length-22][1] : null;
+    const card = document.createElement('div'); card.className = 'card';
+    card.innerHTML = `<div class="card-label">${s.label}</div>
+      <div class="card-value">${fmtValue(lastVal, s.kind)}</div>
+      <div class="card-date">al ${fmtDate(lastDate)}</div>
+      <div class="card-chart">${sparkSvg(pts.slice(-130), colorFor(i))}</div>
+      <div class="card-deltas"><div>vs. anterior ${deltaBadge(lastVal,prevVal,s.kind)}</div><div>vs. ~1 mes ${deltaBadge(lastVal,monthVal,s.kind)}</div></div>`;
+    grid.appendChild(card);
+  });
+}
+
+// ---------- LICITACION <-> MONETARIO ----------
+function renderLicitacion(){
+  const el = document.getElementById('lic-content');
+  const lic = DATA.licitacion;
+  if (!lic) { el.innerHTML = '<p class="section-sub">No hay datos_informe.xlsx cargado.</p>'; return; }
+
+  let html = '';
+  html += `<p class="section-sub" style="margin-top:-8px;"><b>${lic.titulo||''}</b><br>${lic.subtitulo||''}</p>`;
+
+  const r = lic.rollover || {};
+  html += '<div class="lic-cards">';
+  html += `<div class="lic-card"><div class="k">Vencimientos</div><div class="v">$${arNumber(r['Vencimientos del día ($ Bn)'],2)} Bn</div></div>`;
+  html += `<div class="lic-card"><div class="k">Total adjudicado</div><div class="v">$${arNumber(r['Total adjudicado ($ Bn)'],2)} Bn</div></div>`;
+  html += `<div class="lic-card"><div class="k">Rollover</div><div class="v">${arNumber(r['Rollover (%)'],1)}%</div></div>`;
+  html += `<div class="lic-card"><div class="k">Excedente absorbido</div><div class="v">$${arNumber(r['Excedente absorbido ($ Bn)'],2)} Bn</div></div>`;
+  html += '</div>';
+
+  if (lic.monetizacion && lic.monetizacion.length) {
+    html += '<div class="lic-cards">';
+    lic.monetizacion.forEach(m => {
+      if (!m.unidad) return;
+      let v = m.unidad.includes('%') ? arNumber(m.valor,1)+'%' : (m.unidad.includes('billones') ? '$'+arNumber(m.valor,2)+' Bn' : `${m.valor} ${m.unidad}`);
+      html += `<div class="lic-card"><div class="k">${m.concepto}</div><div class="v">${v}</div></div>`;
+    });
+    html += '</div>';
+  }
+
+  if (lic.composicion && lic.composicion.length) {
+    html += '<div class="section-title" style="font-size:14px;margin-top:8px;">Instrumentos emitidos en esta licitación</div>';
+    html += '<div class="lic-cards">';
+    lic.composicion.forEach(c => {
+      if (c.categoria === 'TOTAL') return;
+      html += `<div class="lic-card"><div class="k">${c.categoria}</div><div class="v">${arNumber((c.pct||0)*100,1)}%</div></div>`;
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+
+  // grafico alrededor de la fecha de licitacion (si se pudo parsear)
+  const chartHost = document.createElement('div');
+  chartHost.className = 'chart-card';
+  chartHost.innerHTML = '<div class="chart-wrap small"><canvas id="lic-chart"></canvas></div>';
+  el.appendChild(chartHost);
+
+  const idsToShow = ['BM_3','INS_2','INS_7','RES_3'].filter(id => seriesById[id]);
+  let dates, windowNote;
+  if (lic.fecha) {
+    const center = new Date(lic.fecha);
+    const from = new Date(center); from.setDate(from.getDate()-20);
+    const to = new Date(center); to.setDate(to.getDate()+20);
+    windowNote = `Ventana: ${lic.fecha} ± 20 días.`;
+    var filterFn = (d) => { const dd = new Date(d); return dd>=from && dd<=to; };
+  } else {
+    windowNote = 'No se pudo determinar la fecha exacta de la licitación desde el informe; se muestran los últimos 60 datos disponibles.';
+    var filterFn = null;
+  }
+  const allDates = new Set();
+  const seriesData = idsToShow.map(id => {
+    let pts = seriesById[id].data;
+    pts = filterFn ? pts.filter(([d]) => filterFn(d)) : pts.slice(-60);
+    pts.forEach(([d])=>allDates.add(d));
+    return {id, map: new Map(pts)};
+  });
+  const dts = Array.from(allDates).sort();
+  const datasets = seriesData.map((sd,i) => ({
+    label: seriesById[sd.id].label, data: dts.map(d => sd.map.has(d)?sd.map.get(d):null),
+    borderColor: colorFor(i), backgroundColor: colorFor(i)+'22', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15
+  }));
+  new Chart(document.getElementById('lic-chart'), {
+    type:'line', data:{labels: dts.map(fmtDate), datasets},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},
+      scales:{x:{ticks:{maxTicksLimit:10,font:{size:10}}}, y:{ticks:{font:{size:10}}}}}
+  });
+  const noteEl = document.createElement('p');
+  noteEl.className = 'section-sub'; noteEl.style.marginTop = '10px'; noteEl.textContent = windowNote +
+    ' Se grafica la variación diaria de la base monetaria, el stock de pases pasivos y de letras/notas del BCRA, y las reservas — para leer si hubo esterilización/absorción de pesos alrededor de la licitación. Este cruce sólo refleja la última licitación cargada en datos_informe.xlsx (el archivo se sobreescribe en cada actualización manual).';
+  el.appendChild(noteEl);
+}
+
+// ---------- INSIGHTS ----------
+function last(id){ const s = seriesById[id]; return s && s.data.length ? s.data[s.data.length-1][1] : null; }
+function nBack(id, n){ const s = seriesById[id]; return s && s.data.length>n ? s.data[s.data.length-1-n][1] : null; }
+function renderInsights(){
+  const list = document.getElementById('insight-list');
+  const items = [];
+
+  const bm = last('BM_30'), res = last('RES_3'), fx = last('RES_16');
+  if (bm && res && fx) {
+    const cobertura = (res*fx)/bm*100;
+    items.push({t:'Cobertura de la base monetaria con reservas', n: arNumber(cobertura,0)+'%',
+      d:`Las reservas internacionales brutas (US$ ${arNumber(res,0)} M), valuadas al tipo de cambio de referencia, equivalen a un ${arNumber(cobertura,0)}% de la base monetaria. Es una lectura aproximada — no descuenta pasivos en dólares del BCRA.`});
+  }
+
+  const bmNow = last('BM_30'), bm90 = nBack('BM_30',90);
+  if (bmNow && bm90) {
+    const varPct = (bmNow-bm90)/bm90*100;
+    items.push({t:'Ritmo de expansión monetaria (90 días hábiles)', n: (varPct>=0?'+':'')+arNumber(varPct,1)+'%',
+      d:`La base monetaria pasó de $${arNumber(bm90/1e6,1)} bn a $${arNumber(bmNow/1e6,1)} bn en los últimos ~90 días hábiles (${(varPct>=0?'expansión':'contracción')} nominal).`});
+  }
+
+  const pasesNow = last('INS_2'), pases90 = nBack('INS_2',90);
+  const letrasNow = last('INS_7'), letras90 = nBack('INS_7',90);
+  if ((pasesNow!==null || letrasNow!==null)) {
+    const instrNow = (pasesNow||0)+(letrasNow||0);
+    const instr90 = (pases90||0)+(letras90||0);
+    if (instr90) {
+      const varPct = (instrNow-instr90)/instr90*100;
+      items.push({t:'Deuda remunerada del BCRA (pases + letras/notas)', n:(varPct>=0?'+':'')+arNumber(varPct,1)+'%',
+        d:`El stock combinado de pases pasivos y letras/notas del BCRA en pesos varió ${arNumber(varPct,1)}% en ~90 días hábiles — un aumento sostenido suele reflejar mayor esterilización de pesos vía instrumentos remunerados.`});
+    }
+  }
+
+  const dep = last('DEP_23'), pre = last('PRE_21');
+  if (dep && pre) {
+    items.push({t:'Profundidad del crédito', n: arNumber(pre/dep*100,0)+'%',
+      d:`Los préstamos al sector privado equivalen al ${arNumber(pre/dep*100,0)}% de los depósitos totales del sistema.`});
+  }
+
+  const badlar = last('TAS_12'), tpm = last('INS_11');
+  if (badlar && tpm) {
+    items.push({t:'Spread BADLAR vs. tasa de política monetaria', n:(badlar-tpm>=0?'+':'')+arNumber(badlar-tpm,1)+' p.p.',
+      d:`BADLAR (${arNumber(badlar,1)}%) vs. tasa de política monetaria (${arNumber(tpm,1)}%, dato al ${fmtDate(seriesById['INS_11'].data[seriesById['INS_11'].data.length-1][0])} — esta serie puede estar discontinuada si el BCRA cambió de instrumento de referencia).`});
+  }
+
+  list.innerHTML = items.map(it => `<div class="insight"><div class="t">${it.t}</div>
+    <div class="d"><span class="n">${it.n}</span> — ${it.d}</div></div>`).join('') ||
+    '<p class="section-sub">No hay suficientes datos para calcular insights todavía.</p>';
+}
+
+// ---------- init ----------
+renderResumen();
+renderChartTab();
+renderCalcTab();
+renderPieTab();
+renderLicitacion();
+renderInsights();
+</script>
+</body>
+</html>
