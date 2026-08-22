@@ -40,4 +40,3 @@ Dos páginas sobre la coyuntura monetaria argentina, publicadas en el mismo siti
 - `.github/workflows/build.yml` — automatización: descarga `series.xlsm`, corre ambos scripts y publica en
   GitHub Pages, tanto en cada push a `main` como todos los días hábiles por horario.
 - `informe_28-07-2026.pdf` — copia del primer informe generado.
-
