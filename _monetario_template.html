@@ -194,8 +194,12 @@
 
       <div class="panel" id="panel-licitacion">
         <div class="section-title">Licitación ↔ Monetario</div>
-        <p class="section-sub" id="lic-sub">Cruce entre la última licitación cargada en el informe de licitaciones
-          y el movimiento de la base monetaria e instrumentos del BCRA alrededor de esa fecha.</p>
+        <p class="section-sub" id="lic-sub">Elegí qué licitación ver y su cruce con el movimiento de la base
+          monetaria e instrumentos del BCRA alrededor de esa fecha. Cada licitación que se carga en
+          <code>datos_informe.xlsx</code> queda archivada acá, así no se pierde al subir la siguiente.</p>
+        <div class="toolbar" id="lic-select-wrap" style="display:none;">
+          <label>Licitación: <select id="lic-select"></select></label>
+        </div>
         <div id="lic-content"></div>
       </div>
 
@@ -203,6 +207,14 @@
         <div class="section-title">Insights</div>
         <p class="section-sub">Algunas lecturas calculadas automáticamente a partir de los datos disponibles.</p>
         <div class="insight-list" id="insight-list"></div>
+
+        <div class="section-title" style="font-size:15px;margin-top:22px;">Dinero interno vs. dinero externo</div>
+        <p class="section-sub">Aproximación al esquema de <b>outside money</b> (pasivo del BCRA/Estado, respaldo directo
+          del sector privado — se usa la base monetaria) vs. <b>inside money</b> (creado dentro del sistema bancario
+          vía crédito, que en el agregado se compensa entre acreedores y deudores privados — se aproxima como M2 menos
+          la base monetaria). Es una simplificación: no descuenta encajes ni otros pasivos del BCRA no incluidos en
+          la base monetaria.</p>
+        <div class="chart-card"><div class="chart-wrap small"><canvas id="io-chart"></canvas></div></div>
       </div>
 
     </div>
@@ -566,10 +578,28 @@ function renderResumen(){
 }
 
 // ---------- LICITACION <-> MONETARIO ----------
+const LICITACIONES = DATA.licitaciones || (DATA.licitacion ? [DATA.licitacion] : []);
+let licSelected = LICITACIONES.length ? (LICITACIONES[0].fecha || 0) : null;
+let licChart = null;
+
+function setupLicSelect(){
+  const wrap = document.getElementById('lic-select-wrap');
+  const sel = document.getElementById('lic-select');
+  if (LICITACIONES.length <= 1) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  sel.innerHTML = LICITACIONES.map((l,i) => {
+    const fecha = l.fecha || `s-fecha-${i}`;
+    const titulo = l.subtitulo || l.titulo || fecha;
+    return `<option value="${fecha}">${titulo}</option>`;
+  }).join('');
+  sel.value = licSelected;
+  sel.addEventListener('change', () => { licSelected = sel.value; renderLicitacion(); });
+}
+
 function renderLicitacion(){
   const el = document.getElementById('lic-content');
-  const lic = DATA.licitacion;
-  if (!lic) { el.innerHTML = '<p class="section-sub">No hay datos_informe.xlsx cargado.</p>'; return; }
+  if (!LICITACIONES.length) { el.innerHTML = '<p class="section-sub">No hay ninguna licitación archivada todavía.</p>'; return; }
+  const lic = LICITACIONES.find(l => (l.fecha || 0) === licSelected) || LICITACIONES[0];
 
   let html = '';
   html += `<p class="section-sub" style="margin-top:-8px;"><b>${lic.titulo||''}</b><br>${lic.subtitulo||''}</p>`;
@@ -641,14 +671,15 @@ function renderLicitacion(){
     return { label: seriesById[sd.id].label, data: vals,
       borderColor: colorFor(i), backgroundColor: colorFor(i)+'22', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15 };
   });
-  new Chart(document.getElementById('lic-chart'), {
+  if (licChart) licChart.destroy();
+  licChart = new Chart(document.getElementById('lic-chart'), {
     type:'line', data:{labels: dts.map(fmtDate), datasets},
     options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},
       scales:{x:{ticks:{maxTicksLimit:10,font:{size:10}}}, y:{title:{display:true,text:'índice, base 100 = primer dato de la ventana',font:{size:10}}, ticks:{font:{size:10}}}}}
   });
   const noteEl = document.createElement('p');
   noteEl.className = 'section-sub'; noteEl.style.marginTop = '10px'; noteEl.textContent = windowNote +
-    ' Se grafica (normalizado a base 100 al inicio de la ventana, para poder comparar escalas muy distintas) el nivel de la base monetaria, el stock de pases pasivos y de letras/notas del BCRA, y las reservas — una línea que sube menos (o baja) que las demás alrededor de la licitación es una señal de esterilización/absorción de pesos. Este cruce sólo refleja la última licitación cargada en datos_informe.xlsx (el archivo se sobreescribe en cada actualización manual).';
+    ' Se grafica (normalizado a base 100 al inicio de la ventana, para poder comparar escalas muy distintas) el nivel de la base monetaria, el stock de pases pasivos y de letras/notas del BCRA, y las reservas — una línea que sube menos (o baja) que las demás alrededor de la licitación es una señal de esterilización/absorción de pesos.';
   el.appendChild(noteEl);
 }
 
@@ -697,9 +728,42 @@ function renderInsights(){
       d:`BADLAR (${arNumber(badlar,1)}%) vs. tasa de política monetaria (${arNumber(tpm,1)}%, dato al ${fmtDate(seriesById['INS_11'].data[seriesById['INS_11'].data.length-1][0])} — esta serie puede estar discontinuada si el BCRA cambió de instrumento de referencia).`});
   }
 
+  const m2Now = last('DEP_29'), outsideNow = last('BM_30');
+  if (m2Now && outsideNow) {
+    const insideNow = m2Now - outsideNow;
+    const pctInside = insideNow/m2Now*100;
+    items.push({t:'Dinero interno (inside money) vs. externo (outside money)', n: arNumber(pctInside,0)+'% interno',
+      d:`De M2 ($${arNumber(m2Now/1e6,1)} bn), un ${arNumber(pctInside,0)}% ($${arNumber(insideNow/1e6,1)} bn) es dinero
+      creado dentro del sistema bancario vía crédito (inside money, aprox. M2 − base monetaria) y el resto,
+      $${arNumber(outsideNow/1e6,1)} bn, es la base monetaria (outside money). Ver el detalle y la evolución más abajo.`});
+  }
+
   list.innerHTML = items.map(it => `<div class="insight"><div class="t">${it.t}</div>
     <div class="d"><span class="n">${it.n}</span> — ${it.d}</div></div>`).join('') ||
     '<p class="section-sub">No hay suficientes datos para calcular insights todavía.</p>';
+}
+
+// ---------- DINERO INTERNO vs. EXTERNO ----------
+function renderInsideOutside(){
+  const canvas = document.getElementById('io-chart');
+  if (!canvas) return;
+  const outside = seriesById['BM_30'], m2 = seriesById['DEP_29'];
+  if (!outside || !m2) { canvas.closest('.chart-card').innerHTML = '<p class="section-sub">Faltan las series necesarias (base monetaria y M2) para este gráfico.</p>'; return; }
+  const outsideMap = new Map(outside.data);
+  const m2Map = new Map(m2.data);
+  const dates = m2.data.map(([d]) => d).filter(d => outsideMap.has(d)).slice(-500);
+  const outsideVals = dates.map(d => outsideMap.get(d));
+  const insideVals = dates.map(d => m2Map.get(d) - outsideMap.get(d));
+  new Chart(canvas, {
+    type: 'line',
+    data: { labels: dates.map(fmtDate), datasets: [
+      { label:'Dinero externo (base monetaria)', data: outsideVals, borderColor: colorFor(0), backgroundColor: colorFor(0)+'33', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15, fill:true, stack:'io' },
+      { label:'Dinero interno (M2 − base monetaria)', data: insideVals, borderColor: colorFor(1), backgroundColor: colorFor(1)+'33', spanGaps:true, pointRadius:0, borderWidth:2, tension:0.15, fill:true, stack:'io' },
+    ]},
+    options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
+      plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},
+      scales:{x:{stacked:true, ticks:{maxTicksLimit:10,font:{size:10}}}, y:{stacked:true, ticks:{font:{size:10}, callback:v=>arNumber(v/1e6,0)+' bn'}}} }
+  });
 }
 
 // ---------- init ----------
@@ -707,8 +771,10 @@ renderResumen();
 renderChartTab();
 renderCalcTab();
 renderPieTab();
+setupLicSelect();
 renderLicitacion();
 renderInsights();
+renderInsideOutside();
 </script>
 </body>
 </html>

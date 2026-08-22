@@ -119,6 +119,8 @@ for s in all_series:
             as_of = d
 
 # ---------- 2. leer datos_informe.xlsx (cruce licitaciones) ----------
+HIST_DIR = HERE / "licitaciones_historial"
+
 licitacion = None
 if XLSX_LIC.exists():
     wb2 = openpyxl.load_workbook(XLSX_LIC, data_only=True)
@@ -160,11 +162,31 @@ if XLSX_LIC.exists():
         "timeline": timeline,
     }
 
+    # Archivar esta licitación para no perderla cuando datos_informe.xlsx se
+    # reemplace por la próxima. Se guarda un JSON por fecha en licitaciones_historial/.
+    if fecha_lic:
+        HIST_DIR.mkdir(exist_ok=True)
+        (HIST_DIR / f"{fecha_lic}.json").write_text(
+            json.dumps(licitacion, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    else:
+        print("Aviso: no se pudo determinar la fecha de la licitación, no se archivó en licitaciones_historial/.")
+
+# ---------- 2b. cargar todo el historial de licitaciones archivadas ----------
+licitaciones = []
+if HIST_DIR.exists():
+    for f in HIST_DIR.glob("*.json"):
+        try:
+            licitaciones.append(json.loads(f.read_text(encoding="utf-8")))
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Aviso: no se pudo leer {f.name} del historial de licitaciones: {e}")
+licitaciones.sort(key=lambda x: x.get("fecha") or "", reverse=True)
+
 dashboard_data = {
     "generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
     "as_of": as_of,
     "series": all_series,
-    "licitacion": licitacion,
+    "licitaciones": licitaciones,
 }
 
 json_str = json.dumps(dashboard_data, ensure_ascii=False, separators=(",", ":"))

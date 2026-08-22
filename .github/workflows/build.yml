@@ -56,16 +56,16 @@ jobs:
       - name: Generar monetario.html (indicadores BCRA)
         run: python build_monetario.py
 
-      - name: Commitear series.xlsm si cambió
+      - name: Commitear series.xlsm y el historial de licitaciones si cambiaron
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet -- series.xlsm; then
-            git add series.xlsm
-            git commit -m "Actualizar series.xlsm (BCRA) - $(date -u +%Y-%m-%d)"
+          git add series.xlsm licitaciones_historial/ 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Actualizar series.xlsm y/o historial de licitaciones - $(date -u +%Y-%m-%d)"
             git push
           else
-            echo "series.xlsm sin cambios."
+            echo "Sin cambios en series.xlsm ni en licitaciones_historial/."
           fi
 
       - name: Preparar carpeta pública
