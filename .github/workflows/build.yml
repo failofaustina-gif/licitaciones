@@ -1,0 +1,85 @@
+name: Actualizar sitio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "datos_informe.xlsx"
+      - "build_informe.py"
+      - "build_monetario.py"
+  schedule:
+    # 22:00 UTC = 19:00 hora Argentina, de lunes a viernes.
+    # El BCRA publica los datos monetarios diarios durante la tarde/noche.
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el repo
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          pip install openpyxl playwright
+          playwright install --with-deps chromium
+
+      - name: Descargar series.xlsm actualizado del BCRA
+        run: |
+          curl -fsSL "https://www.bcra.gob.ar/archivos/Pdfs/PublicacionesEstadisticas/series.xlsm" -o series.xlsm.new
+          # Si la descarga falló o vino vacía, seguimos con el series.xlsm que ya está en el repo.
+          if [ -s series.xlsm.new ]; then
+            mv series.xlsm.new series.xlsm
+          else
+            echo "Descarga de series.xlsm vacía o fallida, se conserva la versión anterior del repo."
+            rm -f series.xlsm.new
+          fi
+
+      - name: Generar informe.html e informe.pdf (licitaciones)
+        run: python build_informe.py
+
+      - name: Generar monetario.html (indicadores BCRA)
+        run: python build_monetario.py
+
+      - name: Commitear series.xlsm si cambió
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- series.xlsm; then
+            git add series.xlsm
+            git commit -m "Actualizar series.xlsm (BCRA) - $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "series.xlsm sin cambios."
+          fi
+
+      - name: Preparar carpeta pública
+        run: |
+          mkdir -p public
+          cp informe.html public/index.html
+          cp informe.pdf public/informe.pdf || true
+          cp monetario.html public/monetario.html
+
+      - name: Subir artefacto de Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - name: Publicar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
