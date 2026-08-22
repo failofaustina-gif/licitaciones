@@ -177,7 +177,11 @@
           <span class="range-btn" data-range="1095">3 años</span>
           <span class="range-btn active" data-range="0">Todo</span>
           <label><input type="checkbox" id="normalize-chk"> Normalizar (base 100)</label>
+          <label><input type="checkbox" id="pbi-chk-grafico"> % del PBI</label>
         </div>
+        <p class="section-sub" id="pbi-note-grafico" style="display:none;margin-top:-8px;">Cada serie dividida por el PBI nominal a tasa
+          anualizada (INDEC, Cuadro 8) del trimestre correspondiente a cada fecha. Tiene sentido para series en
+          pesos; para series en dólares o en tasas el resultado no es directamente interpretable.</p>
         <div class="chart-card"><div class="chart-wrap"><canvas id="main-chart"></canvas></div></div>
       </div>
 
@@ -191,6 +195,7 @@
           fijate qué series de "Reservas" e "Instrumentos del BCRA" tenés disponibles y armá la aproximación
           que te resulte más razonable.</div>
         <div class="dropzone" id="calc-drop" data-target="calc"><span class="empty-hint">Arrastrá variables acá para sumarlas/restarlas…</span></div>
+        <div class="toolbar"><label><input type="checkbox" id="pbi-chk-calc"> Expresar el resultado como % del PBI</label></div>
         <div id="calc-result-wrap"></div>
         <div class="chart-card"><div class="chart-wrap small"><canvas id="calc-chart"></canvas></div></div>
       </div>
@@ -236,6 +241,7 @@
             <div class="dropzone" id="io-inside-drop" data-target="io-inside"><span class="empty-hint">Arrastrá variables acá…</span></div>
           </div>
         </div>
+        <div class="toolbar"><label><input type="checkbox" id="pbi-chk-io"> Expresar como % del PBI</label></div>
         <div id="io-result-wrap"></div>
         <div class="chart-card"><div class="chart-wrap small"><canvas id="io-chart"></canvas></div></div>
       </div>
@@ -256,6 +262,20 @@
 const DATA = JSON.parse(document.getElementById('dashboard-data').textContent);
 const seriesById = {};
 DATA.series.forEach(s => seriesById[s.id] = s);
+
+// ---------- PBI (para expresar series como % del PBI) ----------
+const PBI_QUARTERS = (DATA.pbi || []).slice().sort((a,b) => a.desde < b.desde ? -1 : 1);
+function pbiAnualizadoForDate(dateStr){
+  if (!PBI_QUARTERS.length) return null;
+  for (let i = PBI_QUARTERS.length - 1; i >= 0; i--) {
+    if (dateStr >= PBI_QUARTERS[i].desde) return PBI_QUARTERS[i].anualizado;
+  }
+  return null; // la fecha es anterior al primer trimestre con dato
+}
+function asPctPbi(value, dateStr){
+  const pbi = pbiAnualizadoForDate(dateStr);
+  return (value === null || value === undefined || !pbi) ? null : value/pbi*100;
+}
 
 const PALETTE = ['#2C5FA8','#1E8A5F','#C2571B','#8A5FC2','#5B8FD9','#0B2547','#B4B2A9','#3FA796','#D98324','#6C4AB6'];
 function colorFor(i){ return PALETTE[i % PALETTE.length]; }
@@ -397,7 +417,15 @@ document.querySelectorAll('.range-btn').forEach(b => b.addEventListener('click',
   chartRange = parseInt(b.dataset.range,10);
   renderChartTab();
 }));
-document.getElementById('normalize-chk').addEventListener('change', renderChartTab);
+document.getElementById('normalize-chk').addEventListener('change', e => {
+  if (e.target.checked) document.getElementById('pbi-chk-grafico').checked = false;
+  renderChartTab();
+});
+document.getElementById('pbi-chk-grafico').addEventListener('change', e => {
+  if (e.target.checked) document.getElementById('normalize-chk').checked = false;
+  document.getElementById('pbi-note-grafico').style.display = e.target.checked ? '' : 'none';
+  renderChartTab();
+});
 
 function filterRange(data){
   if (!chartRange) return data;
@@ -425,15 +453,18 @@ function renderChartTab(){
   });
   const dates = Array.from(allDatesSet).sort();
 
+  const norm = document.getElementById('normalize-chk').checked;
+  const pctPbi = document.getElementById('pbi-chk-grafico').checked;
   const datasets = seriesData.map((sd,i) => {
     let base = null;
-    const norm = document.getElementById('normalize-chk').checked;
     const vals = dates.map(d => {
       const v = sd.pts.has(d) ? sd.pts.get(d) : null;
       return v;
     });
     let outVals = vals;
-    if (norm) {
+    if (pctPbi) {
+      outVals = dates.map((d,j) => asPctPbi(vals[j], d));
+    } else if (norm) {
       const firstIdx = vals.findIndex(v => v !== null && v !== 0);
       const baseVal = firstIdx >= 0 ? vals[firstIdx] : null;
       outVals = vals.map(v => (v !== null && baseVal) ? (v/baseVal*100) : null);
@@ -458,7 +489,9 @@ function renderChartTab(){
       responsive: true, maintainAspectRatio: false,
       interaction: {mode:'index', intersect:false},
       plugins: { legend: {display: datasets.length>1, labels:{boxWidth:10, font:{size:11}}}, tooltip:{titleFont:{size:11}, bodyFont:{size:11}} },
-      scales: { x: {ticks:{maxTicksLimit:10, font:{size:10}}}, y: {ticks:{font:{size:10}}} }
+      scales: { x: {ticks:{maxTicksLimit:10, font:{size:10}}},
+        y: {ticks:{font:{size:10}, callback: v => pctPbi ? (Math.round(v*100)/100)+'%' : v},
+          title: {display: pctPbi, text: '% del PBI anualizado', font:{size:10}}} }
     }
   });
 }
@@ -473,6 +506,7 @@ function setCoef(id, val){
   const item = state.calc.find(x=>x.id===id);
   if (item) { item.coef = parseFloat(val)||0; saveState(); renderCalcTab(); }
 }
+document.getElementById('pbi-chk-calc').addEventListener('change', renderCalcTab);
 
 let calcChart = null;
 function renderCalcTab(){
@@ -502,18 +536,20 @@ function renderCalcTab(){
     commonDates = commonDates ? new Set([...commonDates].filter(d => ds.has(d))) : ds;
   });
   const dates = Array.from(commonDates||[]).sort();
-  const result = dates.map(d => {
+  const rawResult = dates.map(d => {
     let total = 0;
     state.calc.forEach(({id,coef}, i) => { total += coef * maps[i].get(d); });
     return total;
   });
+  const pctPbi = document.getElementById('pbi-chk-calc').checked;
+  const result = pctPbi ? dates.map((d,j) => asPctPbi(rawResult[j], d)) : rawResult;
 
   const lastVal = result.length ? result[result.length-1] : null;
   const lastDate = dates.length ? dates[dates.length-1] : null;
   resultWrap.innerHTML = `<div class="calc-result">
       <div class="lbl">Resultado de la fórmula</div>
-      <div class="val">${lastVal===null ? 'sin datos en común' : arNumber(lastVal,1)}</div>
-      <div class="note">${lastDate ? 'al ' + fmtDate(lastDate) + ' · calculado sobre ' + dates.length + ' fechas en común' : 'las variables elegidas no comparten ninguna fecha'}</div>
+      <div class="val">${lastVal===null ? 'sin datos en común' : arNumber(lastVal,1) + (pctPbi ? '%' : '')}</div>
+      <div class="note">${lastDate ? 'al ' + fmtDate(lastDate) + ' · calculado sobre ' + dates.length + ' fechas en común' + (pctPbi ? ' · como % del PBI nominal anualizado' : '') : 'las variables elegidas no comparten ninguna fecha'}</div>
     </div>`;
 
   if (calcChart) calcChart.destroy();
@@ -522,7 +558,8 @@ function renderCalcTab(){
     data: { labels: dates.map(fmtDate), datasets: [{ label:'Fórmula', data: result, borderColor: '#2C5FA8',
       backgroundColor:'#2C5FA822', pointRadius:0, borderWidth:2, tension:0.15, fill:true }] },
     options: { responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{display:false}}, scales:{x:{ticks:{maxTicksLimit:10,font:{size:10}}}, y:{ticks:{font:{size:10}}}} }
+      plugins:{legend:{display:false}}, scales:{x:{ticks:{maxTicksLimit:10,font:{size:10}}},
+        y:{ticks:{font:{size:10}, callback: v => pctPbi ? (Math.round(v*100)/100)+'%' : v}}} }
   });
 }
 
@@ -846,22 +883,26 @@ function renderIOTab(){
   renderIOZoneChips('inside', 'io-inside-drop');
 
   const resultWrap = document.getElementById('io-result-wrap');
-  const { dates, outsideVals, insideVals } = computeIOSeries();
+  const { dates, outsideVals: rawOutside, insideVals: rawInside } = computeIOSeries();
   if (!dates.length) {
     resultWrap.innerHTML = '';
     if (ioChart) { ioChart.destroy(); ioChart = null; }
     return;
   }
+  const pctPbi = document.getElementById('pbi-chk-io').checked;
+  const outsideVals = pctPbi ? dates.map((d,j) => asPctPbi(rawOutside[j], d)) : rawOutside;
+  const insideVals = pctPbi ? dates.map((d,j) => asPctPbi(rawInside[j], d)) : rawInside;
   let lastIdx = dates.length - 1;
   while (lastIdx >= 0 && (outsideVals[lastIdx] === null || insideVals[lastIdx] === null)) lastIdx--;
   if (lastIdx >= 0) {
     const outsideNow = outsideVals[lastIdx], insideNow = insideVals[lastIdx];
     const total = outsideNow + insideNow;
     const pct = total ? insideNow/total*100 : null;
+    const suf = pctPbi ? '%' : '';
     resultWrap.innerHTML = `<div class="io-summary">
-      <div class="box"><div class="lbl">Dinero externo</div><div class="val">${arNumber(outsideNow,1)}</div>
+      <div class="box"><div class="lbl">Dinero externo</div><div class="val">${arNumber(outsideNow,1)}${suf}</div>
         <div class="note">al ${fmtDate(dates[lastIdx])}</div></div>
-      <div class="box alt"><div class="lbl">Dinero interno</div><div class="val">${arNumber(insideNow,1)}</div>
+      <div class="box alt"><div class="lbl">Dinero interno</div><div class="val">${arNumber(insideNow,1)}${suf}</div>
         <div class="note">${pct!==null ? arNumber(pct,0)+'% del total' : ''}</div></div>
     </div>`;
   } else {
@@ -877,9 +918,11 @@ function renderIOTab(){
     ]},
     options: { responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
       plugins:{legend:{labels:{boxWidth:10,font:{size:10}}}},
-      scales:{x:{stacked:true, ticks:{maxTicksLimit:10,font:{size:10}}}, y:{stacked:true, ticks:{font:{size:10}, callback:v=>arNumber(v/1e6,0)+' bn'}}} }
+      scales:{x:{stacked:true, ticks:{maxTicksLimit:10,font:{size:10}}},
+        y:{stacked:true, ticks:{font:{size:10}, callback: v => pctPbi ? (Math.round(v*100)/100)+'%' : (arNumber(v/1e6,0)+' bn')}}} }
   });
 }
+document.getElementById('pbi-chk-io').addEventListener('change', renderIOTab);
 
 // ---------- init ----------
 renderResumen();

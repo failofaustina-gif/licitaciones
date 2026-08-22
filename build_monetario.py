@@ -182,11 +182,30 @@ if HIST_DIR.exists():
             print(f"Aviso: no se pudo leer {f.name} del historial de licitaciones: {e}")
 licitaciones.sort(key=lambda x: x.get("fecha") or "", reverse=True)
 
+# ---------- 2c. PBI nominal trimestral (para expresar series como % del PBI) ----------
+# Se actualiza a mano en pbi_trimestral.json (INDEC publica con ~3 meses de rezago y no tiene
+# un endpoint estable para automatizar la descarga). Los valores de ese archivo son los mismos
+# que las columnas "I/II/III/IV trimestre" del Cuadro 8 de INDEC: cada uno YA está a tasa
+# anualizada (no es el flujo real del trimestre), así que se usan directamente como denominador
+# anual por trimestre — NO hay que sumar los 4 trimestres de un año (eso daría ~4x de más).
+QTR_START = {"Q1": "01-01", "Q2": "04-01", "Q3": "07-01", "Q4": "10-01"}
+pbi_quarters = []
+pbi_path = HERE / "pbi_trimestral.json"
+if pbi_path.exists():
+    pbi_raw = json.loads(pbi_path.read_text(encoding="utf-8"))["trimestres"]
+    for q in sorted(pbi_raw.keys()):
+        year, qn = q.split("-Q")
+        pbi_quarters.append({"trimestre": q, "desde": f"{year}-{QTR_START[f'Q{qn}']}", "anualizado": round(pbi_raw[q], 1)})
+    pbi_quarters.sort(key=lambda x: x["desde"])
+else:
+    print("Aviso: no se encontró pbi_trimestral.json, no se va a poder expresar nada como % del PBI.")
+
 dashboard_data = {
     "generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
     "as_of": as_of,
     "series": all_series,
     "licitaciones": licitaciones,
+    "pbi": pbi_quarters,
 }
 
 json_str = json.dumps(dashboard_data, ensure_ascii=False, separators=(",", ":"))

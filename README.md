@@ -9,9 +9,10 @@ Dos páginas sobre la coyuntura monetaria argentina, publicadas en el mismo siti
    préstamos, tasas de mercado e instrumentos del BCRA), actualizado automáticamente todos los días hábiles.
    Se puede arrastrar cualquier variable a un gráfico, armar cálculos propios (por ejemplo, una aproximación
    de reservas netas, o de dinero interno vs. externo / inside-outside money, con dos casilleros arrastrables
-   y coeficientes editables), ver composiciones en gráfico de torta, y elegir qué licitación del Tesoro (de
-   todas las que se fueron cargando en `datos_informe.xlsx` a lo largo del tiempo) cruzar con el movimiento
-   de la base monetaria e instrumentos del BCRA alrededor de esa fecha.
+   y coeficientes editables), expresar cualquier gráfico o cálculo como % del PBI, ver composiciones en gráfico
+   de torta, y elegir qué licitación del Tesoro (de todas las que se fueron cargando en `datos_informe.xlsx`
+   a lo largo del tiempo) cruzar con el movimiento de la base monetaria e instrumentos del BCRA alrededor de
+   esa fecha.
 
 ## Ver el sitio
 
@@ -41,6 +42,10 @@ Al regenerar la página, la licitación que estaba en `datos_informe.xlsx` se ar
 ## Estructura
 
 - `datos_informe.xlsx` — los datos de la licitación más reciente (lo único que hay que tocar para actualizar).
+- `pbi_trimestral.json` — PBI nominal trimestral de INDEC (a tasa anualizada, igual que el Cuadro 8 de INDEC),
+  usado para el toggle "% del PBI" en Gráfico, Calculadora e Insights. Se actualiza a mano cada vez que INDEC
+  publica un trimestre nuevo (~3 meses de rezago) — no hay un endpoint estable para automatizarlo. Instrucciones
+  de dónde sacar el dato nuevo adentro del archivo.
 - `licitaciones_historial/` — un JSON por cada licitación ya procesada (nombrado por fecha), generado y
   commiteado automáticamente por el workflow; es lo que alimenta el selector de licitaciones. No hace falta
   tocarlo a mano.
