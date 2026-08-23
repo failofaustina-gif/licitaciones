@@ -29,6 +29,11 @@ Dos páginas sobre la coyuntura monetaria argentina, publicadas en el mismo siti
 
 ## Cómo actualizar la licitación (para la próxima)
 
+Hay dos formas: la manual de siempre (queda guardada para todo el mundo) y un cargador rápido en la
+propia página (solo para vos, no se guarda).
+
+### A. Manual — queda publicada en el sitio para siempre
+
 1. Editá `datos_informe.xlsx` con los datos de la licitación nueva (hojas: Portada, Rollover, Tasas,
    Coyuntura, Composición, Timeline, Monetización, Fuentes).
 2. Subilo al repo reemplazando el archivo actual: **Add file → Upload files** → arrastrás el Excel → **Commit changes**.
@@ -38,6 +43,29 @@ Dos páginas sobre la coyuntura monetaria argentina, publicadas en el mismo siti
 Al regenerar la página, la licitación que estaba en `datos_informe.xlsx` se archiva automáticamente en
 `licitaciones_historial/` (un JSON por fecha), así queda disponible en el selector de la pestaña
 **Licitación ↔ Monetario** aunque después subas una licitación nueva que sobreescriba el Excel.
+
+### B. Cargador en la página — al toque, pero solo en tu navegador
+
+En la pestaña **Licitación ↔ Monetario** hay un cargador que acepta directamente los archivos oficiales,
+sin pasar por `datos_informe.xlsx`:
+
+- **Comunicado de resultados (PDF)** de la Secretaría de Finanzas → se parsea en el navegador (pdf.js) y
+  arma automáticamente ofertas recibidas, VE ofertado/adjudicado, el detalle por instrumento y la
+  composición de lo emitido.
+- **Colocaciones de deuda (Excel, opcional)** de la Oficina Nacional de Crédito Público → se parsea con
+  SheetJS y, si alguna fila coincide con la fecha de la licitación que estás viendo, marca qué instrumentos
+  son nuevos y cuáles son reaperturas.
+
+Todo el procesamiento pasa en el navegador — nada se sube a ningún servidor. Por eso mismo **no queda
+guardado**: es visible solo en esa pestaña del navegador mientras no se recargue la página, y no lo ve
+nadie más que entre al sitio. Para que quede publicado de forma permanente, hay que pasar el PDF (y el
+Excel, si aplica) para sumarlos al repositorio con la vía A.
+
+Limitación conocida: como ninguna de las dos fuentes trae los "vencimientos del día", el cargador no
+calcula rollover automáticamente (esa cifra sigue siendo manual, vía `datos_informe.xlsx`). Tampoco cruza
+por nombre de instrumento entre PDF y Excel — lo hace por fecha de colocación, así que si las fechas de
+los dos archivos no se solapan, no va a mostrar ningún cruce (no es un error, simplemente no hay nada que
+cruzar).
 
 ## Estructura
 
@@ -58,6 +86,8 @@ Al regenerar la página, la licitación que estaba en `datos_informe.xlsx` se ar
   id de serie (`RESUMEN_IDS` en Python y en el `<script>` del HTML) — se pueden cambiar ahí.
 - `_monetario_template.html` — plantilla HTML/CSS/JS del explorador (todo el frontend); `build_monetario.py`
   le inyecta el JSON de datos. Si se quiere tocar el diseño o la lógica de la página, es este archivo.
+  Incluye el cargador de PDF/Excel de licitaciones (carga diferida de pdf.js y SheetJS desde CDN, parseo
+  100% client-side, no persiste — ver sección B de arriba).
 - `.github/workflows/build.yml` — automatización: descarga `series.xlsm`, corre ambos scripts y publica en
   GitHub Pages, tanto en cada push a `main` como todos los días hábiles por horario.
 - `informe_28-07-2026.pdf` — copia del primer informe generado.

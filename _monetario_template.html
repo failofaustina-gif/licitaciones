@@ -211,8 +211,26 @@
       <div class="panel" id="panel-licitacion">
         <div class="section-title">Licitación ↔ Monetario</div>
         <p class="section-sub" id="lic-sub">Elegí qué licitación ver y su cruce con el movimiento de la base
-          monetaria e instrumentos del BCRA alrededor de esa fecha. Cada licitación que se carga en
-          <code>datos_informe.xlsx</code> queda archivada acá, así no se pierde al subir la siguiente.</p>
+          monetaria e instrumentos del BCRA alrededor de esa fecha. Cada licitación que se carga al repositorio
+          queda archivada acá, así no se pierde al subir la siguiente.</p>
+
+        <div class="help-box" id="lic-upload-box">
+          <b>Cargar una licitación nueva:</b> subí acá el <b>comunicado de resultados (PDF)</b> de la Secretaría
+          de Finanzas y se procesa en tu navegador — no se sube a ningún servidor. Se agrega a la lista de acá
+          abajo para que la veas al toque, pero <b>no queda guardada</b>: si recargás la página, desaparece.
+          Para que quede disponible para siempre (y para cualquiera que entre al sitio), pasame el PDF y lo
+          sumo al repositorio como las demás.
+          <div class="toolbar" style="margin:10px 0 4px;">
+            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Comunicado de resultados (PDF)
+              <input type="file" id="lic-pdf-input" accept="application/pdf">
+            </label>
+            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Colocaciones de deuda (Excel, opcional)
+              <input type="file" id="lic-xlsx-input" accept=".xlsx,.xls">
+            </label>
+          </div>
+          <div id="lic-upload-status"></div>
+        </div>
+
         <div class="toolbar" id="lic-select-wrap" style="display:none;">
           <label>Licitación: <select id="lic-select"></select></label>
         </div>
@@ -679,15 +697,71 @@ function renderLicitacion(){
   const lic = LICITACIONES.find(l => (l.fecha || 0) === licSelected) || LICITACIONES[0];
 
   let html = '';
-  html += `<p class="section-sub" style="margin-top:-8px;"><b>${lic.titulo||''}</b><br>${lic.subtitulo||''}</p>`;
+  const localBadge = lic.origen === 'pdf'
+    ? ' <span style="display:inline-block;background:var(--amber-light);color:var(--amber);font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 7px;vertical-align:middle;">cargada localmente · no persistida</span>'
+    : '';
+  html += `<p class="section-sub" style="margin-top:-8px;"><b>${lic.titulo||''}</b>${localBadge}<br>${lic.subtitulo||''}</p>`;
 
-  const r = lic.rollover || {};
-  html += '<div class="lic-cards">';
-  html += `<div class="lic-card"><div class="k">Vencimientos</div><div class="v">$${arNumber(r['Vencimientos del día ($ Bn)'],2)} Bn</div></div>`;
-  html += `<div class="lic-card"><div class="k">Total adjudicado</div><div class="v">$${arNumber(r['Total adjudicado ($ Bn)'],2)} Bn</div></div>`;
-  html += `<div class="lic-card"><div class="k">Rollover</div><div class="v">${arNumber(r['Rollover (%)'],1)}%</div></div>`;
-  html += `<div class="lic-card"><div class="k">Excedente absorbido</div><div class="v">$${arNumber(r['Excedente absorbido ($ Bn)'],2)} Bn</div></div>`;
-  html += '</div>';
+  if (lic.rollover) {
+    const r = lic.rollover;
+    html += '<div class="lic-cards">';
+    html += `<div class="lic-card"><div class="k">Vencimientos</div><div class="v">$${arNumber(r['Vencimientos del día ($ Bn)'],2)} Bn</div></div>`;
+    html += `<div class="lic-card"><div class="k">Total adjudicado</div><div class="v">$${arNumber(r['Total adjudicado ($ Bn)'],2)} Bn</div></div>`;
+    html += `<div class="lic-card"><div class="k">Rollover</div><div class="v">${arNumber(r['Rollover (%)'],1)}%</div></div>`;
+    html += `<div class="lic-card"><div class="k">Excedente absorbido</div><div class="v">$${arNumber(r['Excedente absorbido ($ Bn)'],2)} Bn</div></div>`;
+    html += '</div>';
+  }
+
+  if (lic.resumenPdf) {
+    const rp = lic.resumenPdf;
+    html += '<div class="lic-cards">';
+    html += `<div class="lic-card"><div class="k">Ofertas recibidas</div><div class="v">${arNumber(rp.ofertas,0)}</div></div>`;
+    html += `<div class="lic-card"><div class="k">VE ofertado</div><div class="v">$${arNumber(rp.veOfertadoArs/1e6,2)} Bn</div></div>`;
+    html += `<div class="lic-card"><div class="k">VE adjudicado</div><div class="v">$${arNumber(rp.veAdjudicadoArs/1e6,2)} Bn</div></div>`;
+    if (rp.veAdjudicadoUsd) html += `<div class="lic-card"><div class="k">VE adjudicado (100% USD)</div><div class="v">USD ${arNumber(rp.veAdjudicadoUsd,0)} M</div></div>`;
+    html += '</div>';
+    html += `<p class="section-sub" style="margin-top:-8px;font-size:11.5px;">Extraído automáticamente del comunicado de resultados${rp.tipoCambioRef ? ` (dólar tomado a la referencia del comunicado: $${arNumber(rp.tipoCambioRef,2)})` : ''}. Revisá los números contra el PDF original antes de usarlos para algo importante — el parseo es best-effort.</p>`;
+  }
+
+  if (lic.instrumentos && lic.instrumentos.length) {
+    const moneyFmt = (m) => (m && m.value !== null && m.value !== undefined) ? (m.currency==='USD'?'USD ':'$') + arNumber(m.value,0) : 's/d';
+    const rateFmt = (inst) => {
+      const r = inst.tirea || inst.tna;
+      return (r && r.value !== null && r.value !== undefined) ? arNumber(r.value,2)+'%' : 's/d';
+    };
+    html += '<div class="section-title" style="font-size:14px;margin-top:8px;">Detalle de instrumentos (extraído del PDF)</div>';
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+    html += `<thead><tr style="text-align:left;border-bottom:1px solid var(--line);">
+      <th style="padding:6px 8px;">Instrumento</th><th style="padding:6px 8px;">Sección</th>
+      <th style="padding:6px 8px;">VNO ofertado</th><th style="padding:6px 8px;">VNO adjudicado</th>
+      <th style="padding:6px 8px;">VE adjudicado</th><th style="padding:6px 8px;">Precio corte</th>
+      <th style="padding:6px 8px;">Tasa</th><th style="padding:6px 8px;">VNO en circulación</th></tr></thead><tbody>`;
+    lic.instrumentos.forEach(inst => {
+      html += `<tr style="border-bottom:1px solid #F0F2F7;">
+        <td style="padding:6px 8px;">${inst.nombre}</td>
+        <td style="padding:6px 8px;color:var(--ink-soft);">${inst.seccion}</td>
+        <td style="padding:6px 8px;">${moneyFmt(inst.vno_ofertado)}</td>
+        <td style="padding:6px 8px;">${moneyFmt(inst.vno_adjudicado)}</td>
+        <td style="padding:6px 8px;">${moneyFmt(inst.ve_adjudicado)}</td>
+        <td style="padding:6px 8px;">${inst.precio_corte && inst.precio_corte.value!==null ? arNumber(inst.precio_corte.value,2) : 's/d'}</td>
+        <td style="padding:6px 8px;">${rateFmt(inst)}</td>
+        <td style="padding:6px 8px;">${moneyFmt(inst.vno_circulacion)}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+
+  if (lic.colocacionesDetalle && lic.colocacionesDetalle.length) {
+    html += '<div class="section-title" style="font-size:14px;margin-top:8px;">Cruce con colocaciones de deuda (Excel cargado)</div>';
+    html += '<p class="section-sub" style="margin-top:-8px;">Instrumentos con fecha de colocación igual a la de esta licitación, según el registro de la Oficina Nacional de Crédito Público.</p>';
+    html += '<div class="lic-cards">';
+    lic.colocacionesDetalle.forEach(c => {
+      const tagColor = c.nuevo ? 'var(--green)' : 'var(--ink-soft)';
+      const tag = c.nuevo ? 'nuevo' : 'reapertura';
+      html += `<div class="lic-card"><div class="k">${c.nombre} <span style="font-weight:700;color:${tagColor}">· ${tag}</span></div><div class="v" style="font-size:14px;">VE $${arNumber(c.valor_efectivo,0)}</div></div>`;
+    });
+    html += '</div>';
+  }
 
   if (lic.monetizacion && lic.monetizacion.length) {
     html += '<div class="lic-cards">';
@@ -759,6 +833,293 @@ function renderLicitacion(){
     ' Se grafica (normalizado a base 100 al inicio de la ventana, para poder comparar escalas muy distintas) el nivel de la base monetaria, el stock de pases pasivos y de letras/notas del BCRA, y las reservas — una línea que sube menos (o baja) que las demás alrededor de la licitación es una señal de esterilización/absorción de pesos.';
   el.appendChild(noteEl);
 }
+
+// ---------- CARGA DE LICITACIONES DESDE PDF / EXCEL (client-side, no persiste) ----------
+
+// -- carga diferida de librerías (solo si el usuario efectivamente sube un archivo) --
+const _scriptCache = {};
+function loadScript(src){
+  if (_scriptCache[src]) return _scriptCache[src];
+  _scriptCache[src] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = () => resolve(); s.onerror = () => reject(new Error('No se pudo cargar ' + src));
+    document.head.appendChild(s);
+  });
+  return _scriptCache[src];
+}
+let _pdfjsPromise = null;
+async function ensurePdfJs(){
+  if (window.pdfjsLib) return window.pdfjsLib;
+  if (!_pdfjsPromise) {
+    _pdfjsPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs').then(mod => {
+      mod.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+      window.pdfjsLib = mod;
+      return mod;
+    });
+  }
+  return _pdfjsPromise;
+}
+async function ensureXlsxLib(){
+  if (window.XLSX) return window.XLSX;
+  await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
+  return window.XLSX;
+}
+
+// -- parser del "Comunicado de Resultados" de la Secretaría de Finanzas (PDF) --
+const VALUE_RE = /^(\$|USD)?\s?-?[\d][\d.,]*\s*(\(\*\*\))?%?$/;
+const HEADER_NOISE = new Set([
+  'VNO', 'Ofertado', 'Ofertado (*)', 'Adjudicado', 'Adjudicado (*)', '(*)', '(**)',
+  'Valor', 'Efectivo', 'Precio de', 'corte por', 'cada VNO $', 'cada VNO', 'cada VNO USD',
+  '1.000', 'USD 1.000', 'TIREA', 'TNA', 'VNO Total en', 'VNO Total', 'en', 'Circulación',
+  'Total', 'Instrumento a Tasa Fija', 'Instrumento ajustado por CER', 'Instrumentos Dólar Linked',
+  'BONAR USD',
+]);
+function isValueToken(tok){ return VALUE_RE.test(tok.trim()); }
+function cleanTokens(items){ return items.map(s => s.trim()).filter(s => s.length > 0); }
+function parseMoneyStr(s){
+  if (s == null) return null;
+  const currency = /USD/.test(s) ? 'USD' : (/\$/.test(s) ? 'ARS' : null);
+  const isPct = /%/.test(s);
+  const numStr = s.replace(/USD|\$|\(\*\*\)|%/g, '').trim();
+  const normalized = numStr.replace(/\./g, '').replace(',', '.');
+  const value = parseFloat(normalized);
+  return { raw: s, value: isNaN(value) ? null : value, currency, isPct, isMillones: currency !== null };
+}
+const TOTAL_LABELS = [
+  'Cantidad de Ofertas Recibidas', 'Total VNO Ofertado (*)', 'Total VE Ofertado (*)',
+  'Total VNO Adjudicado (*)', 'Total Valor Efectivo Adjudicado (*)',
+];
+function parseTotalsBlock(tokens, startIdx, endIdx, nCols){
+  const out = {};
+  for (const label of TOTAL_LABELS) {
+    const idx = tokens.indexOf(label, startIdx);
+    if (idx === -1 || idx >= endIdx) continue;
+    const vals = []; let j = idx + 1;
+    while (vals.length < nCols && j < endIdx && isValueToken(tokens[j])) { vals.push(parseMoneyStr(tokens[j])); j++; }
+    out[label] = vals;
+  }
+  return out;
+}
+function parseInstrumentRows(tokens, startIdx, endIdx, nCols){
+  const rows = []; let i = startIdx, lastConsumedEnd = startIdx;
+  while (i < endIdx) {
+    if (isValueToken(tokens[i])) {
+      let j = i; const run = [];
+      while (j < endIdx && run.length < nCols && isValueToken(tokens[j])) { run.push(tokens[j]); j++; }
+      if (run.length === nCols) {
+        const nameTokens = tokens.slice(lastConsumedEnd, i).filter(t => !HEADER_NOISE.has(t));
+        const name = nameTokens.join(' ').replace(/\s+/g, ' ').trim();
+        if (name) rows.push({ nombre: name, valores: run.map(parseMoneyStr) });
+        lastConsumedEnd = j; i = j; continue;
+      }
+    }
+    i++;
+  }
+  return rows;
+}
+function parseComunicado(pagesItems){
+  const tokens = cleanTokens(pagesItems.flat());
+  const fullText = tokens.join(' ');
+  const MESES = { enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12 };
+  let fecha = null;
+  const mBsAs = fullText.match(/BUENOS AIRES,[^0-9]*(\d{1,2})\s+de\s+([a-zA-Zñáéíóú]+)\s+de\s+(\d{4})/i);
+  const mFecha = mBsAs || fullText.match(/(\d{1,2})\s+de\s+([a-zA-Zñáéíóú]+)\s+de\s+(\d{4})/i);
+  if (mFecha) { const mes = MESES[mFecha[2].toLowerCase()]; if (mes) fecha = `${mFecha[3]}-${String(mes).padStart(2,'0')}-${String(mFecha[1]).padStart(2,'0')}`; }
+
+  const sections = [];
+  const sectionTitleRe = /^(Instrumento a Tasa Fija|Instrumento ajustado por CER|Instrumentos Dólar Linked|BONAR USD)$/;
+  tokens.forEach((tok, idx) => { if (sectionTitleRe.test(tok)) sections.push({ title: tok, idx }); });
+
+  const instrumentos = [];
+  for (let s = 0; s < sections.length; s++) {
+    const { title, idx } = sections[s];
+    const endIdx = s + 1 < sections.length ? sections[s + 1].idx : tokens.length;
+    const nCols = title === 'BONAR USD' ? 7 : 6;
+    const colLabels = nCols === 7
+      ? ['vno_ofertado','vno_adjudicado','ve_adjudicado','precio_corte','tna','tirea','vno_circulacion']
+      : ['vno_ofertado','vno_adjudicado','ve_adjudicado','precio_corte','tirea','vno_circulacion'];
+    const rows = parseInstrumentRows(tokens, idx + 1, endIdx, nCols);
+    for (const row of rows) {
+      const obj = { nombre: row.nombre, seccion: title };
+      colLabels.forEach((lbl, i) => { obj[lbl] = row.valores[i]; });
+      instrumentos.push(obj);
+    }
+  }
+
+  const firstSectionIdx = sections.length ? sections[0].idx : tokens.length;
+  const totalsPesos = parseTotalsBlock(tokens, 0, firstSectionIdx, 3);
+  const bonarSection = sections.find(s => s.title === 'BONAR USD');
+  let totalsUsd = {};
+  if (bonarSection) {
+    const dolarLinkedSection = sections.find(s => s.title === 'Instrumentos Dólar Linked');
+    const searchStart = dolarLinkedSection ? dolarLinkedSection.idx : 0;
+    totalsUsd = parseTotalsBlock(tokens, searchStart, bonarSection.idx, 1);
+  }
+  let tipoCambioRef = null;
+  const mFx = fullText.match(/Pesos\s*\/\s*USD\s*([\d.,]+)/i);
+  if (mFx) { const v = parseFloat(mFx[1].replace(/\./g, '').replace(',', '.')); if (!isNaN(v)) tipoCambioRef = v; }
+
+  return { fecha, totalsPesos, totalsUsd, instrumentos, tipoCambioRef, _fullText: fullText };
+}
+
+// -- parser del registro "Colocaciones de Deuda" (Oficina Nacional de Crédito Público, Excel) --
+const COLOC_SHEETS = { 'Bonos':'bono', 'Letras':'letra', 'Letras ISP':'letra_isp', 'Otras Operaciones':'otra_operacion', 'Canjes- Conversiones':'canje' };
+function excelDateToISO(v){
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === 'number') { const d = new Date(Math.round((v - 25569) * 86400 * 1000)); return d.toISOString().slice(0, 10); }
+  return null;
+}
+function findHeaderRow(rows){
+  for (let i = 0; i < Math.min(rows.length, 10); i++) { if (rows[i] && String(rows[i][0] || '').trim() === 'Nombre del Instrumento') return i; }
+  return -1;
+}
+function parseColocaciones(workbook, sheetToRows){
+  const out = [];
+  for (const [sheetName, tipo] of Object.entries(COLOC_SHEETS)) {
+    const ws = workbook.Sheets[sheetName]; if (!ws) continue;
+    const rows = sheetToRows(ws);
+    const headerIdx = findHeaderRow(rows); if (headerIdx === -1) continue;
+    const header = rows[headerIdx].map(h => String(h || '').replace(/\s+/g, ' ').trim());
+    const col = (name) => header.findIndex(h => h.startsWith(name));
+    const cNombre = col('Nombre del Instrumento'), cEmision = col('Fecha de emisión'), cVencimiento = col('Vencimiento'),
+          cMoneda = col('Tipo Moneda'), cMonedaOrigen = col('Moneda de Origen'), cColocacion = col('Fecha colocación'),
+          cVN = col('Valor Nominal'), cVE = col('Valor Efectivo'), cVTA = col('Valor Técnico Adjudicado'),
+          cPrecio = col('Precio de emisión'), cVida = col('Vida Promedio'),
+          cResolucion = col('Resolución') !== -1 ? col('Resolución') : col('Norma'), cNumero = col('Número');
+    for (let r = headerIdx + 1; r < rows.length; r++) {
+      const row = rows[r]; if (!row || !row[cNombre]) continue;
+      const fechaColocacion = cColocacion !== -1 ? excelDateToISO(row[cColocacion]) : null;
+      if (!fechaColocacion) continue;
+      out.push({ tipo, hoja: sheetName, nombre: String(row[cNombre]).trim(),
+        fecha_emision: cEmision !== -1 ? excelDateToISO(row[cEmision]) : null,
+        vencimiento: cVencimiento !== -1 ? excelDateToISO(row[cVencimiento]) : null,
+        moneda: cMoneda !== -1 ? row[cMoneda] : null, moneda_origen: cMonedaOrigen !== -1 ? row[cMonedaOrigen] : null,
+        fecha_colocacion: fechaColocacion,
+        valor_nominal: cVN !== -1 ? row[cVN] : null,
+        valor_efectivo: cVE !== -1 ? row[cVE] : (cVTA !== -1 ? row[cVTA] : null),
+        precio_emision: cPrecio !== -1 ? row[cPrecio] : null, vida_promedio: cVida !== -1 ? row[cVida] : null,
+        resolucion: cResolucion !== -1 ? row[cResolucion] : null, numero: cNumero !== -1 ? row[cNumero] : null });
+    }
+  }
+  return out;
+}
+function esInstrumentoNuevo(nombreBase, fechaColocacion, todasLasColocaciones){
+  const anteriores = todasLasColocaciones.filter(c => c.nombre === nombreBase && c.fecha_colocacion < fechaColocacion);
+  return anteriores.length === 0;
+}
+function colocacionesEnFecha(fecha, todasLasColocaciones){
+  return todasLasColocaciones.filter(c => c.fecha_colocacion === fecha);
+}
+
+// -- arma el objeto "licitación" (mismo shape que datos_informe.xlsx) a partir de lo parseado del PDF --
+function sumTotalsCol(block, label, idx){
+  const arr = block && block[label];
+  return (arr && arr[idx] && arr[idx].value !== null) ? arr[idx].value : null;
+}
+const SECCION_LABELS = {
+  'Instrumento a Tasa Fija': 'Pesos, tasa fija',
+  'Instrumento ajustado por CER': 'Pesos, CER',
+  'Instrumentos Dólar Linked': 'Dólar linked',
+  'BONAR USD': 'Dólares (bono, equiv. $)',
+};
+function buildLicitacionFromPdf(parsed, fileName){
+  const ofertasArs = sumTotalsCol(parsed.totalsPesos, 'Cantidad de Ofertas Recibidas', 2);
+  const ofertasUsd = sumTotalsCol(parsed.totalsUsd, 'Cantidad de Ofertas Recibidas', 0);
+  const ofertas = (ofertasArs||0) + (ofertasUsd||0);
+  const veOfertadoArs = sumTotalsCol(parsed.totalsPesos, 'Total VE Ofertado (*)', 2);
+  const veAdjudicadoArs = sumTotalsCol(parsed.totalsPesos, 'Total Valor Efectivo Adjudicado (*)', 2);
+  const veAdjudicadoUsd = sumTotalsCol(parsed.totalsUsd, 'Total Valor Efectivo Adjudicado (*)', 0);
+
+  const bySeccion = {};
+  parsed.instrumentos.forEach(inst => {
+    const ve = inst.ve_adjudicado;
+    if (!ve || ve.value === null || ve.value === undefined) return;
+    let ars = ve.value;
+    if (inst.seccion === 'BONAR USD' && parsed.tipoCambioRef) ars = ve.value * parsed.tipoCambioRef;
+    bySeccion[inst.seccion] = (bySeccion[inst.seccion]||0) + ars;
+  });
+  const totalArs = Object.values(bySeccion).reduce((a,b)=>a+b, 0);
+  const composicion = totalArs ? Object.entries(bySeccion).map(([seccion, monto]) => ({
+    categoria: SECCION_LABELS[seccion] || seccion, monto, pct: monto/totalArs,
+  })) : [];
+
+  const fecha = parsed.fecha;
+  const titulo = 'Licitación del Tesoro' + (fecha ? (' — ' + fmtDate(fecha)) : ' (fecha no reconocida)');
+  const subtitulo = `Cargada localmente desde ${fileName || 'un PDF'}${fecha ? `, comunicado de resultados del ${fmtDate(fecha)}.` : '.'}`;
+
+  return {
+    origen: 'pdf', fecha, titulo, subtitulo,
+    resumenPdf: { ofertas, veOfertadoArs, veAdjudicadoArs, veAdjudicadoUsd, tipoCambioRef: parsed.tipoCambioRef },
+    composicion, instrumentos: parsed.instrumentos,
+  };
+}
+
+// -- wiring de los inputs de archivo --
+let loadedColocaciones = [];
+const licPdfInput = document.getElementById('lic-pdf-input');
+const licXlsxInput = document.getElementById('lic-xlsx-input');
+const licUploadStatus = document.getElementById('lic-upload-status');
+
+if (licPdfInput) licPdfInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  licUploadStatus.innerHTML = '<p class="section-sub" style="margin:6px 0 0;">Procesando PDF…</p>';
+  try {
+    const pdfjsLib = await ensurePdfJs();
+    const buf = await file.arrayBuffer();
+    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const pagesItems = [];
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
+      pagesItems.push(content.items.map(it => it.str));
+    }
+    const parsed = parseComunicado(pagesItems);
+    if (!parsed.instrumentos.length) {
+      licUploadStatus.innerHTML = '<div class="warn-box" style="margin:6px 0 0;">No se reconoció ningún instrumento en el PDF — revisá que sea el "Comunicado de Resultados" de la Secretaría de Finanzas sin modificar.</div>';
+      return;
+    }
+    const lic = buildLicitacionFromPdf(parsed, file.name);
+    const existingIdx = LICITACIONES.findIndex(l => l.fecha && lic.fecha && l.fecha === lic.fecha);
+    if (existingIdx >= 0) LICITACIONES.splice(existingIdx, 1);
+    LICITACIONES.unshift(lic);
+    licSelected = lic.fecha || 0;
+    setupLicSelect();
+    renderLicitacion();
+    licUploadStatus.innerHTML = `<div class="help-box" style="margin:6px 0 0;">Cargado: <b>${lic.titulo}</b> — ya la podés ver más abajo. Recordá que esto no queda guardado si recargás la página.</div>`;
+  } catch (err) {
+    console.error(err);
+    licUploadStatus.innerHTML = `<div class="warn-box" style="margin:6px 0 0;">No se pudo procesar el PDF (${(err && err.message) || err}). Probá con el comunicado original sin editar.</div>`;
+  }
+});
+
+if (licXlsxInput) licXlsxInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  licUploadStatus.innerHTML = '<p class="section-sub" style="margin:6px 0 0;">Procesando Excel…</p>';
+  try {
+    const XLSX = await ensureXlsxLib();
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const sheetToRows = (ws) => XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+    loadedColocaciones = parseColocaciones(wb, sheetToRows);
+    if (!loadedColocaciones.length) {
+      licUploadStatus.innerHTML = '<div class="warn-box" style="margin:6px 0 0;">No se reconoció ninguna colocación en el Excel — revisá que sea el registro de "Colocaciones de Deuda" con las hojas Bonos/Letras/etc. sin modificar.</div>';
+      return;
+    }
+    const lic = LICITACIONES.find(l => (l.fecha || 0) === licSelected);
+    if (lic && lic.fecha) {
+      const enFecha = colocacionesEnFecha(lic.fecha, loadedColocaciones)
+        .map(c => Object.assign({}, c, { nuevo: esInstrumentoNuevo(c.nombre, c.fecha_colocacion, loadedColocaciones) }));
+      if (enFecha.length) { lic.colocacionesDetalle = enFecha; renderLicitacion(); }
+    }
+    const fechas = Array.from(new Set(loadedColocaciones.map(c=>c.fecha_colocacion))).sort();
+    licUploadStatus.innerHTML = `<div class="help-box" style="margin:6px 0 0;">Cargadas <b>${loadedColocaciones.length}</b> colocaciones (${fechas[0]} a ${fechas[fechas.length-1]}). Si alguna coincide con la fecha de la licitación que estás viendo, se va a mostrar el cruce (nuevo vs. reapertura) ahí abajo.</div>`;
+  } catch (err) {
+    console.error(err);
+    licUploadStatus.innerHTML = `<div class="warn-box" style="margin:6px 0 0;">No se pudo procesar el Excel (${(err && err.message) || err}).</div>`;
+  }
+});
 
 // ---------- INSIGHTS ----------
 function last(id){ const s = seriesById[id]; return s && s.data.length ? s.data[s.data.length-1][1] : null; }
