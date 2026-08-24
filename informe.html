@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Licitaciones e Indicadores Monetarios - Argentina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0B2547; --blue:#2C5FA8; --blue-light:#E7EFFB; --sky:#5B8FD9;
+    --green:#1E8A5F; --amber:#C2571B; --paper:#F6F7FB; --ink:#0B2547; --ink-soft:#5B6472; --line:#DCE3EF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:#DCE3EF;font-family:'Inter',sans-serif;color:var(--ink);}
+  body{display:flex;justify-content:center;padding:32px 12px;}
+  .page{width:900px;max-width:100%;background:var(--paper);border-radius:22px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(11,37,71,.35);}
+  .hero{background:linear-gradient(135deg,var(--navy) 0%,#173B72 60%,var(--blue) 100%);color:#fff;padding:36px 44px 30px;position:relative;overflow:hidden;}
+  .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06);}
+  .eyebrow{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#AFC7EE;font-weight:600;margin-bottom:10px;}
+  h1{font-family:'Space Grotesk',sans-serif;font-size:26px;line-height:1.2;margin:0 0 8px;font-weight:700;max-width:620px;}
+  .hero p{margin:0;color:#D7E3F6;font-size:14px;max-width:600px;}
+  .hero a{color:#AFC7EE;}
+  .section{padding:26px 44px 4px;}
+  .section-title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--navy);margin:0 0 4px;}
+  .section-sub{font-size:12.5px;color:var(--ink-soft);margin:0 0 14px;line-height:1.5;}
+  .ap-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:0 44px 22px;}
+  .ap-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .ap-cov{font-size:12px;color:var(--ink-soft);}
+  .ap-cov b{color:var(--navy);font-family:'Space Grotesk',sans-serif;}
+  .ap-row{margin-bottom:10px;}
+  .ap-row-label{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .ap-row-total{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);}
+  .ap-bar-track{display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--line);}
+  .ap-bar-fill{height:100%;}
+  .ap-bar-fill.activo{background:var(--green);}
+  .ap-bar-fill.bm{background:var(--blue);}
+  .ap-bar-fill.ins{background:var(--amber);}
+  .ap-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);margin-top:10px;}
+  .ap-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+  .ap-legend .dot.activo{background:var(--green);} .ap-legend .dot.bm{background:var(--blue);} .ap-legend .dot.ins{background:var(--amber);}
+  .lic-list{display:grid;gap:10px;margin:0 44px 8px;}
+  .lic-item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}
+  .lic-item-date{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);font-size:13px;min-width:80px;}
+  .lic-item-val{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--blue);font-size:13px;}
+  .lic-item-sub{font-size:11.5px;color:var(--ink-soft);flex:1;text-align:right;}
+  .footer{padding:20px 44px 30px;font-size:11px;color:#8A93A3;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <div class="eyebrow">Coyuntura monetaria argentina</div>
+    <h1>Licitaciones del Tesoro e indicadores monetarios del BCRA</h1>
+    <p>Actualizado automáticamente a partir de dos fuentes oficiales: el registro de Colocaciones de Deuda de
+      la Oficina Nacional de Crédito Público y las series monetarias diarias del BCRA.</p>
+    <p style="margin-top:12px;"><a href="monetario.html">Ir al explorador interactivo →</a></p>
+  </div>
+  
+    <div class="ap-card">
+      <div class="ap-head">
+        <div class="section-title" style="margin:0;font-size:14px;">Balance simplificado del BCRA</div>
+        <div class="ap-cov">Las reservas cubren <b>158%</b> del pasivo</div>
+      </div>
+      <div class="ap-row">
+        <div class="ap-row-label"><span>Activo — Reservas internacionales</span><span class="ap-row-total">$73,70 Bn</span></div>
+        <div class="ap-bar-track"><div class="ap-bar-fill activo" style="width:100.0%"></div></div>
+      </div>
+      <div class="ap-row">
+        <div class="ap-row-label"><span>Pasivo — Base monetaria + instrumentos remunerados</span><span class="ap-row-total">$46,71 Bn</span></div>
+        <div class="ap-bar-track">
+          <div class="ap-bar-fill bm" style="width:63.1%"></div>
+          <div class="ap-bar-fill ins" style="width:0.3%"></div>
+        </div>
+      </div>
+      <div class="ap-legend">
+        <span><i class="dot activo"></i>Reservas (US$ 49.505 M a $1.488,70)</span>
+        <span><i class="dot bm"></i>Base monetaria</span>
+        <span><i class="dot ins"></i>Pases + letras/notas BCRA</span>
+      </div>
+      <p class="section-sub" style="margin:10px 0 0;font-size:11px;">Aproximación: no descuenta pasivos en
+        dólares del BCRA ni otras partidas del balance real. Al 19/08/2026.</p>
+    </div>
+  <div class="section">
+    <div class="section-title">Últimas licitaciones</div>
+    <div class="section-sub">Valor efectivo adjudicado por fecha de colocación. Ver el detalle completo, con
+      composición e instrumentos, en el explorador.</div>
+  </div>
+  <div class="lic-list">
+      <div class="lic-item">
+        <div class="lic-item-date">30/06/2026</div>
+        <div class="lic-item-val">$12,52 Bn · USD 354 M</div>
+        <div class="lic-item-sub">10 instrumentos colocados · Bonos 67% · Letras 33%</div>
+      </div>
+      <div class="lic-item">
+        <div class="lic-item-date">16/06/2026</div>
+        <div class="lic-item-val">s/d</div>
+        <div class="lic-item-sub">2 instrumentos colocados</div>
+      </div>
+      <div class="lic-item">
+        <div class="lic-item-date">12/06/2026</div>
+        <div class="lic-item-val">$4,38 Bn · USD 286 M</div>
+        <div class="lic-item-sub">7 instrumentos colocados · Bonos 100% · Letras 0%</div>
+      </div>
+      <div class="lic-item">
+        <div class="lic-item-date">08/06/2026</div>
+        <div class="lic-item-val">s/d</div>
+        <div class="lic-item-sub">2 instrumentos colocados</div>
+      </div>
+      <div class="lic-item">
+        <div class="lic-item-date">29/05/2026</div>
+        <div class="lic-item-val">$10,76 Bn · USD 547 M</div>
+        <div class="lic-item-sub">10 instrumentos colocados · Bonos 52% · Letras 48%</div>
+      </div>
+      <div class="lic-item">
+        <div class="lic-item-date">22/05/2026</div>
+        <div class="lic-item-val">s/d</div>
+        <div class="lic-item-sub">3 instrumentos colocados</div>
+      </div>
+      <div class="lic-item">
+        <div class="lic-item-date">15/05/2026</div>
+        <div class="lic-item-val">$10,13 Bn · USD 492 M</div>
+        <div class="lic-item-sub">10 instrumentos colocados · Bonos 56% · Letras 44%</div>
+      </div>
+      <div class="lic-item">
+        <div class="lic-item-date">11/05/2026</div>
+        <div class="lic-item-val">s/d</div>
+        <div class="lic-item-sub">3 instrumentos colocados</div>
+      </div></div>
+  <div class="footer">
+    Fuentes: registro de Colocaciones de Deuda (Oficina Nacional de Crédito Público) y series.xlsm
+    (Gerencia de Estadísticas Monetarias, BCRA — datos provisorios sujetos a revisión). Página generada
+    automáticamente.
+  </div>
+</div>
+</body>
+</html>

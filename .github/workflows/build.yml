@@ -31,9 +31,7 @@ jobs:
           python-version: "3.11"
 
       - name: Instalar dependencias
-        run: |
-          pip install openpyxl playwright
-          playwright install --with-deps chromium
+        run: pip install openpyxl
 
       - name: Descargar series.xlsm actualizado del BCRA
         run: |
@@ -46,10 +44,7 @@ jobs:
             rm -f series.xlsm.new
           fi
 
-      - name: Generar informe.html e informe.pdf (licitaciones)
-        run: python build_informe.py
-
-      - name: Generar monetario.html (indicadores BCRA)
+      - name: Generar informe.html y monetario.html
         run: python build_monetario.py
 
       - name: Commitear series.xlsm y el historial de licitaciones si cambiaron
@@ -68,7 +63,6 @@ jobs:
         run: |
           mkdir -p public
           cp informe.html public/index.html
-          cp informe.pdf public/informe.pdf || true
           cp monetario.html public/monetario.html
 
       - name: Subir artefacto de Pages

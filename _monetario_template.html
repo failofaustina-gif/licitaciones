@@ -116,6 +116,22 @@
   .io-summary .box .note{font-size:11px;color:#E3F0FF;margin-top:4px;}
   @media (max-width:640px){ .io-grid{grid-template-columns:1fr;} }
 
+  .ap-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:18px;}
+  .ap-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .ap-cov{font-size:12px;color:var(--ink-soft);}
+  .ap-cov b{color:var(--navy);font-family:'Space Grotesk',sans-serif;}
+  .ap-row{margin-bottom:10px;}
+  .ap-row-label{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-bottom:4px;}
+  .ap-row-total{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);}
+  .ap-bar-track{display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--line);}
+  .ap-bar-fill{height:100%;}
+  .ap-bar-fill.activo{background:var(--green);}
+  .ap-bar-fill.bm{background:var(--blue);}
+  .ap-bar-fill.ins{background:var(--amber);}
+  .ap-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);margin-top:10px;}
+  .ap-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+  .ap-legend .dot.activo{background:var(--green);} .ap-legend .dot.bm{background:var(--blue);} .ap-legend .dot.ins{background:var(--amber);}
+
   .insight-list{display:grid;gap:12px;}
   .insight{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;
     padding:14px 16px;}
@@ -164,6 +180,7 @@
         <div class="section-title">Resumen</div>
         <p class="section-sub">Los indicadores más seguidos, con su variación diaria y mensual. Para explorar
           cualquier otra variable del archivo, usá la pestaña <b>Gráfico</b>.</p>
+        <div id="ap-wrap"></div>
         <div class="grid" id="resumen-grid"></div>
       </div>
 
@@ -211,27 +228,19 @@
       <div class="panel" id="panel-licitacion">
         <div class="section-title">Licitación ↔ Monetario</div>
         <p class="section-sub" id="lic-sub">Elegí qué licitación ver y su cruce con el movimiento de la base
-          monetaria e instrumentos del BCRA alrededor de esa fecha. La mayoría vienen del registro de
-          Colocaciones de Deuda (una por cada fecha de colocación distinta que tenga cargada); las que además
-          tienen el comunicado en PDF suman ofertas recibidas y montos ofertados.</p>
+          monetaria e instrumentos del BCRA alrededor de esa fecha. Se arma una licitación por cada fecha de
+          colocación distinta del registro de Colocaciones de Deuda.</p>
 
         <div class="help-box" id="lic-upload-box">
-          <b>Previsualizar una licitación antes de subirla:</b> subí acá el <b>Excel de Colocaciones de
-          Deuda</b> de la Oficina Nacional de Crédito Público (recomendado — es una tabla, no cambia de
-          formato) y/o el <b>comunicado de resultados (PDF)</b> de la Secretaría de Finanzas. Todo se procesa
-          en tu navegador, no se sube a ningún servidor. El Excel arma automáticamente <b>una licitación por
-          cada fecha de colocación</b> que tenga adentro (podés subir el registro entero y se agregan todas
-          de una); el PDF suma, además, ofertas recibidas y montos ofertados (dato que no está en el Excel)
-          para la fecha de ese comunicado — el formato del PDF cambia bastante de un comunicado a otro, así
-          que a veces no se puede leer. Se agregan a la lista de acá abajo para que las veas al toque, pero
-          <b>no quedan guardadas</b>: si recargás la página, desaparecen. Para que queden disponibles para
-          siempre (y para cualquiera que entre al sitio), subí los archivos al repositorio — ver el README.
+          <b>Previsualizar antes de subirla:</b> subí acá el <b>Excel de Colocaciones de Deuda</b> de la
+          Oficina Nacional de Crédito Público para ver cómo va a quedar. Se procesa en tu navegador, no se
+          sube a ningún servidor, y arma automáticamente <b>una licitación por cada fecha de colocación</b>
+          que tenga adentro. <b>No queda guardado</b>: si recargás la página, desaparece. Para que quede
+          disponible para siempre (y para cualquiera que entre al sitio), subí el archivo al repositorio —
+          ver el README.
           <div class="toolbar" style="margin:10px 0 4px;">
-            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Colocaciones de deuda (Excel — recomendado)
+            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Colocaciones de deuda (Excel)
               <input type="file" id="lic-xlsx-input" accept=".xlsx,.xls">
-            </label>
-            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Comunicado de resultados (PDF, opcional)
-              <input type="file" id="lic-pdf-input" accept="application/pdf">
             </label>
           </div>
           <div id="lic-upload-status"></div>
@@ -275,9 +284,10 @@
 
   <div class="footer">
     Fuente: Gerencia de Estadísticas Monetarias - Banco Central de la República Argentina (series.xlsm,
-    datos provisorios sujetos a revisión), cruzado con datos_informe.xlsx (licitaciones del Tesoro). Cada serie
-    muestra hasta los últimos ~1000 datos hábiles disponibles; el historial completo está en series.xlsm dentro
-    del repositorio. Página generada automáticamente.
+    datos provisorios sujetos a revisión), cruzado con el registro de Colocaciones de Deuda de la Oficina
+    Nacional de Crédito Público (colocaciones_deuda.xlsx). Cada serie muestra hasta los últimos ~1000 datos
+    hábiles disponibles; el historial completo está en series.xlsm dentro del repositorio. Página generada
+    automáticamente.
   </div>
 </div>
 
@@ -659,6 +669,44 @@ function deltaBadge(curr, prev, kind){
   const cls = pct>0?'up':(pct<0?'down':'flat'); const arrow = pct>0?'▲':(pct<0?'▼':'—');
   return `<span class="chg ${cls}">${arrow} ${arNumber(Math.abs(pct),1)}%</span>`;
 }
+// ---------- ACTIVO Y PASIVO DEL BCRA (balance simplificado) ----------
+function renderActivoPasivo(){
+  const wrap = document.getElementById('ap-wrap');
+  const resUsd = last('RES_3'), fx = last('RES_16'), bm = last('BM_30'), pases = last('INS_2'), letras = last('INS_7');
+  if (resUsd === null || fx === null || bm === null) { wrap.innerHTML = ''; return; }
+  const activo = resUsd * fx;
+  const bmVal = bm, pasesVal = pases || 0, letrasVal = letras || 0;
+  const pasivo = bmVal + pasesVal + letrasVal;
+  const maxTotal = Math.max(activo, pasivo) || 1;
+  const cobertura = pasivo ? (activo/pasivo*100) : null;
+  const s30 = seriesById['BM_30'];
+  const fecha = s30 && s30.data.length ? s30.data[s30.data.length-1][0] : null;
+  wrap.innerHTML = `<div class="ap-card">
+    <div class="ap-head">
+      <div class="section-title" style="margin:0;font-size:14px;">Balance simplificado del BCRA</div>
+      ${cobertura!==null ? `<div class="ap-cov">Las reservas cubren <b>${arNumber(cobertura,0)}%</b> del pasivo</div>` : ''}
+    </div>
+    <div class="ap-row">
+      <div class="ap-row-label"><span>Activo — Reservas internacionales</span><span class="ap-row-total">$${arNumber(activo/1e6,2)} Bn</span></div>
+      <div class="ap-bar-track"><div class="ap-bar-fill activo" style="width:${(activo/maxTotal*100).toFixed(1)}%"></div></div>
+    </div>
+    <div class="ap-row">
+      <div class="ap-row-label"><span>Pasivo — Base monetaria + instrumentos remunerados</span><span class="ap-row-total">$${arNumber(pasivo/1e6,2)} Bn</span></div>
+      <div class="ap-bar-track">
+        <div class="ap-bar-fill bm" style="width:${(bmVal/maxTotal*100).toFixed(1)}%"></div>
+        <div class="ap-bar-fill ins" style="width:${((pasesVal+letrasVal)/maxTotal*100).toFixed(1)}%"></div>
+      </div>
+    </div>
+    <div class="ap-legend">
+      <span><i class="dot activo"></i>Reservas (US$ ${arNumber(resUsd,0)} M a $${arNumber(fx,2)})</span>
+      <span><i class="dot bm"></i>Base monetaria</span>
+      <span><i class="dot ins"></i>Pases + letras/notas BCRA</span>
+    </div>
+    <p class="section-sub" style="margin:10px 0 0;font-size:11px;">Aproximación: no descuenta pasivos en
+      dólares del BCRA ni otras partidas del balance real. Al ${fmtDate(fecha)}.</p>
+  </div>`;
+}
+
 function renderResumen(){
   const grid = document.getElementById('resumen-grid');
   grid.innerHTML = '';
@@ -703,68 +751,23 @@ function renderLicitacion(){
   const lic = LICITACIONES.find(l => (l.fecha || 0) === licSelected) || LICITACIONES[0];
 
   let html = '';
-  const localBadge = (lic.origen === 'pdf' || lic.origen === 'excel' || lic.origen === 'mixto')
+  const localBadge = (lic.origen === 'excel' || lic.origen === 'mixto')
     ? ' <span style="display:inline-block;background:var(--amber-light);color:var(--amber);font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 7px;vertical-align:middle;">cargada localmente · no persistida</span>'
     : '';
   html += `<p class="section-sub" style="margin-top:-8px;"><b>${lic.titulo||''}</b>${localBadge}<br>${lic.subtitulo||''}</p>`;
 
-  if (lic.rollover) {
-    const r = lic.rollover;
-    html += '<div class="lic-cards">';
-    html += `<div class="lic-card"><div class="k">Vencimientos</div><div class="v">$${arNumber(r['Vencimientos del día ($ Bn)'],2)} Bn</div></div>`;
-    html += `<div class="lic-card"><div class="k">Total adjudicado</div><div class="v">$${arNumber(r['Total adjudicado ($ Bn)'],2)} Bn</div></div>`;
-    html += `<div class="lic-card"><div class="k">Rollover</div><div class="v">${arNumber(r['Rollover (%)'],1)}%</div></div>`;
-    html += `<div class="lic-card"><div class="k">Excedente absorbido</div><div class="v">$${arNumber(r['Excedente absorbido ($ Bn)'],2)} Bn</div></div>`;
-    html += '</div>';
-  }
-
-  if (lic.resumenPdf) {
-    const rp = lic.resumenPdf;
-    html += '<div class="lic-cards">';
-    html += `<div class="lic-card"><div class="k">Ofertas recibidas</div><div class="v">${arNumber(rp.ofertas,0)}</div></div>`;
-    html += `<div class="lic-card"><div class="k">VE ofertado</div><div class="v">$${arNumber(rp.veOfertadoArs/1e6,2)} Bn</div></div>`;
-    html += `<div class="lic-card"><div class="k">VE adjudicado</div><div class="v">$${arNumber(rp.veAdjudicadoArs/1e6,2)} Bn</div></div>`;
-    if (rp.veAdjudicadoUsd) html += `<div class="lic-card"><div class="k">VE adjudicado (100% USD)</div><div class="v">USD ${arNumber(rp.veAdjudicadoUsd,0)} M</div></div>`;
-    html += '</div>';
-    html += `<p class="section-sub" style="margin-top:-8px;font-size:11.5px;">Extraído automáticamente del comunicado de resultados${rp.tipoCambioRef ? ` (dólar tomado a la referencia del comunicado: $${arNumber(rp.tipoCambioRef,2)})` : ''}. Revisá los números contra el PDF original antes de usarlos para algo importante — el parseo es best-effort.</p>`;
-  }
-
-  if (lic.instrumentos && lic.instrumentos.length) {
-    const moneyFmt = (m) => (m && m.value !== null && m.value !== undefined) ? (m.currency==='USD'?'USD ':'$') + arNumber(m.value,0) : 's/d';
-    const rateFmt = (inst) => {
-      const r = inst.tirea || inst.tna;
-      return (r && r.value !== null && r.value !== undefined) ? arNumber(r.value,2)+'%' : 's/d';
-    };
-    html += '<div class="section-title" style="font-size:14px;margin-top:8px;">Detalle de instrumentos (extraído del PDF)</div>';
-    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
-    html += `<thead><tr style="text-align:left;border-bottom:1px solid var(--line);">
-      <th style="padding:6px 8px;">Instrumento</th><th style="padding:6px 8px;">Sección</th>
-      <th style="padding:6px 8px;">VNO ofertado</th><th style="padding:6px 8px;">VNO adjudicado</th>
-      <th style="padding:6px 8px;">VE adjudicado</th><th style="padding:6px 8px;">Precio corte</th>
-      <th style="padding:6px 8px;">Tasa</th><th style="padding:6px 8px;">VNO en circulación</th></tr></thead><tbody>`;
-    lic.instrumentos.forEach(inst => {
-      html += `<tr style="border-bottom:1px solid #F0F2F7;">
-        <td style="padding:6px 8px;">${inst.nombre}</td>
-        <td style="padding:6px 8px;color:var(--ink-soft);">${inst.seccion}</td>
-        <td style="padding:6px 8px;">${moneyFmt(inst.vno_ofertado)}</td>
-        <td style="padding:6px 8px;">${moneyFmt(inst.vno_adjudicado)}</td>
-        <td style="padding:6px 8px;">${moneyFmt(inst.ve_adjudicado)}</td>
-        <td style="padding:6px 8px;">${inst.precio_corte && inst.precio_corte.value!==null ? arNumber(inst.precio_corte.value,2) : 's/d'}</td>
-        <td style="padding:6px 8px;">${rateFmt(inst)}</td>
-        <td style="padding:6px 8px;">${moneyFmt(inst.vno_circulacion)}</td>
-      </tr>`;
-    });
-    html += '</tbody></table></div>';
-  }
-
   if (lic.resumenExcel) {
     const re = lic.resumenExcel;
     html += '<div class="lic-cards">';
-    html += `<div class="lic-card"><div class="k">VE adjudicado (pesos)</div><div class="v">$${arNumber(re.veAdjudicadoArs/1e6,2)} Bn</div></div>`;
+    html += re.veAdjudicadoArs
+      ? `<div class="lic-card"><div class="k">VE adjudicado (pesos)</div><div class="v">$${arNumber(re.veAdjudicadoArs/1e6,2)} Bn</div></div>`
+      : `<div class="lic-card"><div class="k">VE adjudicado (pesos)</div><div class="v">s/d</div></div>`;
     if (re.veAdjudicadoUsd) html += `<div class="lic-card"><div class="k">VE adjudicado (USD)</div><div class="v">USD ${arNumber(re.veAdjudicadoUsd,0)} M</div></div>`;
     html += `<div class="lic-card"><div class="k">Instrumentos colocados</div><div class="v">${arNumber(re.cantidadInstrumentos,0)}</div></div>`;
     html += '</div>';
-    html += `<p class="section-sub" style="margin-top:-8px;font-size:11.5px;">Extraído del registro de Colocaciones de Deuda (Oficina Nacional de Crédito Público). Este registro no incluye ofertas recibidas ni montos ofertados — solo lo efectivamente adjudicado.</p>`;
+    html += !re.veAdjudicadoArs
+      ? `<p class="section-sub" style="margin-top:-8px;font-size:11.5px;">Esta fecha solo tiene instrumentos de la hoja "Otras Operaciones" del registro, que no informa Valor Efectivo — por eso no hay monto en pesos para mostrar.</p>`
+      : `<p class="section-sub" style="margin-top:-8px;font-size:11.5px;">Extraído del registro de Colocaciones de Deuda (Oficina Nacional de Crédito Público). Este registro no incluye ofertas recibidas ni montos ofertados — solo lo efectivamente adjudicado.</p>`;
   }
 
   if (lic.instrumentosExcel && lic.instrumentosExcel.length) {
@@ -792,16 +795,6 @@ function renderLicitacion(){
     });
     html += '</tbody></table></div>';
     html += `<p class="section-sub" style="margin-top:4px;font-size:11.5px;">VN y VE en millones de la moneda indicada. "Nuevo" / "reapertura" se calcula comparando contra todas las colocaciones previas del mismo instrumento en el archivo cargado.</p>`;
-  }
-
-  if (lic.monetizacion && lic.monetizacion.length) {
-    html += '<div class="lic-cards">';
-    lic.monetizacion.forEach(m => {
-      if (!m.unidad) return;
-      let v = m.unidad.includes('%') ? arNumber(m.valor,1)+'%' : (m.unidad.includes('billones') ? '$'+arNumber(m.valor,2)+' Bn' : `${m.valor} ${m.unidad}`);
-      html += `<div class="lic-card"><div class="k">${m.concepto}</div><div class="v">${v}</div></div>`;
-    });
-    html += '</div>';
   }
 
   if (lic.composicion && lic.composicion.length) {
@@ -843,10 +836,27 @@ function renderLicitacion(){
     return {id, map: new Map(pts)};
   });
   const dts = Array.from(allDates).sort();
+  const rawBySeries = seriesData.map(sd => dts.map(d => sd.map.has(d) ? sd.map.get(d) : null));
+
+  // tarjetas: cuánto varió cada serie entre el primer y el último dato de la ventana
+  if (idsToShow.length) {
+    const deltaHost = document.createElement('div');
+    deltaHost.className = 'lic-cards';
+    idsToShow.forEach((id, i) => {
+      const valid = rawBySeries[i].filter(v => v !== null);
+      const first = valid.length ? valid[0] : null, last = valid.length ? valid[valid.length-1] : null;
+      const badge = (first && last !== null) ? deltaBadge(last, first, 'ars') : '';
+      const card = document.createElement('div'); card.className = 'lic-card';
+      card.innerHTML = `<div class="k">${seriesById[id].label}</div><div class="v">${badge || 's/d'}</div>`;
+      deltaHost.appendChild(card);
+    });
+    el.appendChild(deltaHost);
+  }
+
   // las 4 series tienen escalas muy distintas (variación diaria vs. stocks) — se normaliza cada una
   // a base 100 en su primer dato de la ventana para poder compararlas en el mismo eje.
   const datasets = seriesData.map((sd,i) => {
-    const rawVals = dts.map(d => sd.map.has(d) ? sd.map.get(d) : null);
+    const rawVals = rawBySeries[i];
     const firstIdx = rawVals.findIndex(v => v !== null && v !== 0);
     const base = firstIdx >= 0 ? Math.abs(rawVals[firstIdx]) : null;
     const vals = base ? rawVals.map(v => v !== null ? (v/base*100) : null) : rawVals;
@@ -865,7 +875,7 @@ function renderLicitacion(){
   el.appendChild(noteEl);
 }
 
-// ---------- CARGA DE LICITACIONES DESDE PDF / EXCEL (client-side, no persiste) ----------
+// ---------- CARGA DE LICITACIONES DESDE EXCEL (client-side, no persiste) ----------
 
 // -- carga diferida de librerías (solo si el usuario efectivamente sube un archivo) --
 const _scriptCache = {};
@@ -878,119 +888,10 @@ function loadScript(src){
   });
   return _scriptCache[src];
 }
-let _pdfjsPromise = null;
-async function ensurePdfJs(){
-  if (window.pdfjsLib) return window.pdfjsLib;
-  if (!_pdfjsPromise) {
-    _pdfjsPromise = import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs').then(mod => {
-      mod.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
-      window.pdfjsLib = mod;
-      return mod;
-    });
-  }
-  return _pdfjsPromise;
-}
 async function ensureXlsxLib(){
   if (window.XLSX) return window.XLSX;
   await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js');
   return window.XLSX;
-}
-
-// -- parser del "Comunicado de Resultados" de la Secretaría de Finanzas (PDF) --
-const VALUE_RE = /^(\$|USD)?\s?-?[\d][\d.,]*\s*(\(\*\*\))?%?$/;
-const HEADER_NOISE = new Set([
-  'VNO', 'Ofertado', 'Ofertado (*)', 'Adjudicado', 'Adjudicado (*)', '(*)', '(**)',
-  'Valor', 'Efectivo', 'Precio de', 'corte por', 'cada VNO $', 'cada VNO', 'cada VNO USD',
-  '1.000', 'USD 1.000', 'TIREA', 'TNA', 'VNO Total en', 'VNO Total', 'en', 'Circulación',
-  'Total', 'Instrumento a Tasa Fija', 'Instrumento ajustado por CER', 'Instrumentos Dólar Linked',
-  'BONAR USD',
-]);
-function isValueToken(tok){ return VALUE_RE.test(tok.trim()); }
-function cleanTokens(items){ return items.map(s => s.trim()).filter(s => s.length > 0); }
-function parseMoneyStr(s){
-  if (s == null) return null;
-  const currency = /USD/.test(s) ? 'USD' : (/\$/.test(s) ? 'ARS' : null);
-  const isPct = /%/.test(s);
-  const numStr = s.replace(/USD|\$|\(\*\*\)|%/g, '').trim();
-  const normalized = numStr.replace(/\./g, '').replace(',', '.');
-  const value = parseFloat(normalized);
-  return { raw: s, value: isNaN(value) ? null : value, currency, isPct, isMillones: currency !== null };
-}
-const TOTAL_LABELS = [
-  'Cantidad de Ofertas Recibidas', 'Total VNO Ofertado (*)', 'Total VE Ofertado (*)',
-  'Total VNO Adjudicado (*)', 'Total Valor Efectivo Adjudicado (*)',
-];
-function parseTotalsBlock(tokens, startIdx, endIdx, nCols){
-  const out = {};
-  for (const label of TOTAL_LABELS) {
-    const idx = tokens.indexOf(label, startIdx);
-    if (idx === -1 || idx >= endIdx) continue;
-    const vals = []; let j = idx + 1;
-    while (vals.length < nCols && j < endIdx && isValueToken(tokens[j])) { vals.push(parseMoneyStr(tokens[j])); j++; }
-    out[label] = vals;
-  }
-  return out;
-}
-function parseInstrumentRows(tokens, startIdx, endIdx, nCols){
-  const rows = []; let i = startIdx, lastConsumedEnd = startIdx;
-  while (i < endIdx) {
-    if (isValueToken(tokens[i])) {
-      let j = i; const run = [];
-      while (j < endIdx && run.length < nCols && isValueToken(tokens[j])) { run.push(tokens[j]); j++; }
-      if (run.length === nCols) {
-        const nameTokens = tokens.slice(lastConsumedEnd, i).filter(t => !HEADER_NOISE.has(t));
-        const name = nameTokens.join(' ').replace(/\s+/g, ' ').trim();
-        if (name) rows.push({ nombre: name, valores: run.map(parseMoneyStr) });
-        lastConsumedEnd = j; i = j; continue;
-      }
-    }
-    i++;
-  }
-  return rows;
-}
-function parseComunicado(pagesItems){
-  const tokens = cleanTokens(pagesItems.flat());
-  const fullText = tokens.join(' ');
-  const MESES = { enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,octubre:10,noviembre:11,diciembre:12 };
-  let fecha = null;
-  const mBsAs = fullText.match(/BUENOS AIRES,[^0-9]*(\d{1,2})\s+de\s+([a-zA-Zñáéíóú]+)\s+de\s+(\d{4})/i);
-  const mFecha = mBsAs || fullText.match(/(\d{1,2})\s+de\s+([a-zA-Zñáéíóú]+)\s+de\s+(\d{4})/i);
-  if (mFecha) { const mes = MESES[mFecha[2].toLowerCase()]; if (mes) fecha = `${mFecha[3]}-${String(mes).padStart(2,'0')}-${String(mFecha[1]).padStart(2,'0')}`; }
-
-  const sections = [];
-  const sectionTitleRe = /^(Instrumento a Tasa Fija|Instrumento ajustado por CER|Instrumentos Dólar Linked|BONAR USD)$/;
-  tokens.forEach((tok, idx) => { if (sectionTitleRe.test(tok)) sections.push({ title: tok, idx }); });
-
-  const instrumentos = [];
-  for (let s = 0; s < sections.length; s++) {
-    const { title, idx } = sections[s];
-    const endIdx = s + 1 < sections.length ? sections[s + 1].idx : tokens.length;
-    const nCols = title === 'BONAR USD' ? 7 : 6;
-    const colLabels = nCols === 7
-      ? ['vno_ofertado','vno_adjudicado','ve_adjudicado','precio_corte','tna','tirea','vno_circulacion']
-      : ['vno_ofertado','vno_adjudicado','ve_adjudicado','precio_corte','tirea','vno_circulacion'];
-    const rows = parseInstrumentRows(tokens, idx + 1, endIdx, nCols);
-    for (const row of rows) {
-      const obj = { nombre: row.nombre, seccion: title };
-      colLabels.forEach((lbl, i) => { obj[lbl] = row.valores[i]; });
-      instrumentos.push(obj);
-    }
-  }
-
-  const firstSectionIdx = sections.length ? sections[0].idx : tokens.length;
-  const totalsPesos = parseTotalsBlock(tokens, 0, firstSectionIdx, 3);
-  const bonarSection = sections.find(s => s.title === 'BONAR USD');
-  let totalsUsd = {};
-  if (bonarSection) {
-    const dolarLinkedSection = sections.find(s => s.title === 'Instrumentos Dólar Linked');
-    const searchStart = dolarLinkedSection ? dolarLinkedSection.idx : 0;
-    totalsUsd = parseTotalsBlock(tokens, searchStart, bonarSection.idx, 1);
-  }
-  let tipoCambioRef = null;
-  const mFx = fullText.match(/Pesos\s*\/\s*USD\s*([\d.,]+)/i);
-  if (mFx) { const v = parseFloat(mFx[1].replace(/\./g, '').replace(',', '.')); if (!isNaN(v)) tipoCambioRef = v; }
-
-  return { fecha, totalsPesos, totalsUsd, instrumentos, tipoCambioRef, _fullText: fullText };
 }
 
 // -- parser del registro "Colocaciones de Deuda" (Oficina Nacional de Crédito Público, Excel) --
@@ -1051,61 +952,8 @@ function colocacionesEnFecha(fecha, todasLasColocaciones){
   return todasLasColocaciones.filter(c => c.fecha_colocacion === fecha);
 }
 
-// -- arma el objeto "licitación" (mismo shape que datos_informe.xlsx) a partir de lo parseado del PDF --
-function sumTotalsCol(block, label, idx){
-  const arr = block && block[label];
-  return (arr && arr[idx] && arr[idx].value !== null) ? arr[idx].value : null;
-}
-const SECCION_LABELS = {
-  'Instrumento a Tasa Fija': 'Pesos, tasa fija',
-  'Instrumento ajustado por CER': 'Pesos, CER',
-  'Instrumentos Dólar Linked': 'Dólar linked',
-  'BONAR USD': 'Dólares (bono, equiv. $)',
-};
-// -- chequeos básicos de sanidad: el parseo del PDF es heurístico y el formato del comunicado
-// -- cambia de un mes a otro, así que puede "andar" pero devolver datos mezclados/incorrectos
-// -- en vez de fallar directamente. Mejor avisar que mostrar algo mal.
-function validateParsedComunicado(parsed){
-  if (!parsed.instrumentos.length) return 'no se reconoció ningún instrumento';
-  if (parsed.instrumentos.some(i => (i.nombre||'').length > 180)) return 'el nombre de un instrumento salió demasiado largo — el parseo probablemente mezcló texto de otra parte del PDF';
-  const veUsd = parsed.totalsUsd && parsed.totalsUsd['Total Valor Efectivo Adjudicado (*)'];
-  if (veUsd && veUsd[0] && veUsd[0].currency && veUsd[0].currency !== 'USD') return 'los totales en dólares no se reconocieron correctamente';
-  return null;
-}
-function buildLicitacionFromPdf(parsed, fileName){
-  const ofertasArs = sumTotalsCol(parsed.totalsPesos, 'Cantidad de Ofertas Recibidas', 2);
-  const ofertasUsd = sumTotalsCol(parsed.totalsUsd, 'Cantidad de Ofertas Recibidas', 0);
-  const ofertas = (ofertasArs||0) + (ofertasUsd||0);
-  const veOfertadoArs = sumTotalsCol(parsed.totalsPesos, 'Total VE Ofertado (*)', 2);
-  const veAdjudicadoArs = sumTotalsCol(parsed.totalsPesos, 'Total Valor Efectivo Adjudicado (*)', 2);
-  const veAdjudicadoUsd = sumTotalsCol(parsed.totalsUsd, 'Total Valor Efectivo Adjudicado (*)', 0);
-
-  const bySeccion = {};
-  parsed.instrumentos.forEach(inst => {
-    const ve = inst.ve_adjudicado;
-    if (!ve || ve.value === null || ve.value === undefined) return;
-    let ars = ve.value;
-    if (inst.seccion === 'BONAR USD' && parsed.tipoCambioRef) ars = ve.value * parsed.tipoCambioRef;
-    bySeccion[inst.seccion] = (bySeccion[inst.seccion]||0) + ars;
-  });
-  const totalArs = Object.values(bySeccion).reduce((a,b)=>a+b, 0);
-  const composicion = totalArs ? Object.entries(bySeccion).map(([seccion, monto]) => ({
-    categoria: SECCION_LABELS[seccion] || seccion, monto, pct: monto/totalArs,
-  })) : [];
-
-  const fecha = parsed.fecha;
-  const titulo = 'Licitación del Tesoro' + (fecha ? (' — ' + fmtDate(fecha)) : ' (fecha no reconocida)');
-  const subtitulo = `Cargada localmente desde ${fileName || 'un PDF'}${fecha ? `, comunicado de resultados del ${fmtDate(fecha)}.` : '.'}`;
-
-  return {
-    origen: 'pdf', fecha, titulo, subtitulo,
-    resumenPdf: { ofertas, veOfertadoArs, veAdjudicadoArs, veAdjudicadoUsd, tipoCambioRef: parsed.tipoCambioRef },
-    composicion, instrumentos: parsed.instrumentos,
-  };
-}
-
 // -- arma UNA licitación por cada fecha de colocación distinta del Excel (fuente robusta: --
-// -- es una tabla con columnas fijas, a diferencia del PDF que cambia de formato mes a mes) --
+// -- es una tabla con columnas fijas que no cambia de formato de una publicación a otra) --
 const TIPO_LABELS_COMPOSICION = { bono:'Bonos', letra:'Letras', letra_isp:'Letras ISP', otra_operacion:'Otras operaciones', canje:'Canjes/conversiones' };
 function buildLicitacionesFromColocaciones(colocaciones){
   const fechas = Array.from(new Set(colocaciones.map(c => c.fecha_colocacion))).filter(Boolean).sort();
@@ -1134,7 +982,7 @@ function buildLicitacionesFromColocaciones(colocaciones){
 }
 
 // -- combina una licitación nueva con una existente de la misma fecha, sin pisar datos que --
-// -- ya estaban (por ejemplo, si primero se cargó el PDF y después el Excel, o viceversa) --
+// -- ya estaban (por ejemplo, si se recarga el mismo Excel dos veces) --
 function mergeOrAddLicitacion(lic){
   const idx = LICITACIONES.findIndex(l => l.fecha && lic.fecha && l.fecha === lic.fecha);
   if (idx < 0) { LICITACIONES.push(lic); return; }
@@ -1143,13 +991,8 @@ function mergeOrAddLicitacion(lic){
     fecha: ex.fecha || lic.fecha,
     titulo: ex.titulo || lic.titulo,
     subtitulo: ex.subtitulo || lic.subtitulo,
-    rollover: ex.rollover || lic.rollover,
-    resumenPdf: ex.resumenPdf || lic.resumenPdf,
     resumenExcel: ex.resumenExcel || lic.resumenExcel,
-    instrumentos: ex.instrumentos || lic.instrumentos,
     instrumentosExcel: ex.instrumentosExcel || lic.instrumentosExcel,
-    monetizacion: ex.monetizacion || lic.monetizacion,
-    timeline: ex.timeline || lic.timeline,
     composicion: (ex.composicion && ex.composicion.length) ? ex.composicion : lic.composicion,
     origen: (ex.origen && lic.origen && ex.origen !== lic.origen) ? 'mixto' : (ex.origen || lic.origen),
   };
@@ -1160,42 +1003,8 @@ function sortLicitaciones(){
 
 // -- wiring de los inputs de archivo --
 let loadedColocaciones = [];
-const licPdfInput = document.getElementById('lic-pdf-input');
 const licXlsxInput = document.getElementById('lic-xlsx-input');
 const licUploadStatus = document.getElementById('lic-upload-status');
-
-if (licPdfInput) licPdfInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  licUploadStatus.innerHTML = '<p class="section-sub" style="margin:6px 0 0;">Procesando PDF…</p>';
-  try {
-    const pdfjsLib = await ensurePdfJs();
-    const buf = await file.arrayBuffer();
-    const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise;
-    const pagesItems = [];
-    for (let i = 1; i <= doc.numPages; i++) {
-      const page = await doc.getPage(i);
-      const content = await page.getTextContent();
-      pagesItems.push(content.items.map(it => it.str));
-    }
-    const parsed = parseComunicado(pagesItems);
-    const problema = validateParsedComunicado(parsed);
-    if (problema) {
-      licUploadStatus.innerHTML = `<div class="warn-box" style="margin:6px 0 0;">No se pudo leer este PDF con confianza (${problema}) — el formato de los comunicados cambia bastante de un mes a otro y este no coincide con el que sabe leer el parseo. Si tenés el <b>Excel de Colocaciones de Deuda</b> con este mismo período, subilo en cambio: es una tabla con columnas fijas, mucho más estable que el PDF.</div>`;
-      return;
-    }
-    const lic = buildLicitacionFromPdf(parsed, file.name);
-    mergeOrAddLicitacion(lic);
-    sortLicitaciones();
-    licSelected = lic.fecha || 0;
-    setupLicSelect();
-    renderLicitacion();
-    licUploadStatus.innerHTML = `<div class="help-box" style="margin:6px 0 0;">Cargado: <b>${lic.titulo}</b> — ya la podés ver más abajo. Recordá que esto no queda guardado si recargás la página.</div>`;
-  } catch (err) {
-    console.error(err);
-    licUploadStatus.innerHTML = `<div class="warn-box" style="margin:6px 0 0;">No se pudo procesar el PDF (${(err && err.message) || err}). Probá con el <b>Excel de Colocaciones de Deuda</b> en cambio — es más robusto que el PDF.</div>`;
-  }
-});
 
 if (licXlsxInput) licXlsxInput.addEventListener('change', async (e) => {
   const file = e.target.files[0];
@@ -1390,6 +1199,7 @@ function renderIOTab(){
 document.getElementById('pbi-chk-io').addEventListener('change', renderIOTab);
 
 // ---------- init ----------
+renderActivoPasivo();
 renderResumen();
 renderChartTab();
 renderCalcTab();

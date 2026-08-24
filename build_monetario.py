@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Genera monetario.html: explorador interactivo de indicadores monetarios del BCRA
-a partir de series.xlsm (https://www.bcra.gob.ar/datos-monetarios-diarios/),
-cruzado con datos_informe.xlsx (licitaciones del Tesoro).
+Genera monetario.html (explorador interactivo) e informe.html (portada) a partir de
+dos únicas fuentes oficiales:
+  - series.xlsm (https://www.bcra.gob.ar/datos-monetarios-diarios/): indicadores monetarios.
+  - colocaciones_deuda.xlsx (Oficina Nacional de Crédito Público): licitaciones del Tesoro.
 
-Uso: python3 build_monetario.py [ruta_xlsm] [ruta_xlsx_licitaciones]
+Uso: python3 build_monetario.py [ruta_xlsm] [ruta_xlsx_colocaciones]
 """
 import sys, re, json, datetime
 import openpyxl
@@ -12,7 +13,6 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 XLSM = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / "series.xlsm"
-XLSX_LIC = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE / "datos_informe.xlsx"
 
 MAX_POINTS = 1000  # ~4 años hábiles por serie, para no inflar el JSON
 
@@ -118,59 +118,7 @@ for s in all_series:
         if as_of is None or d > as_of:
             as_of = d
 
-# ---------- 2. leer datos_informe.xlsx (cruce licitaciones) ----------
 HIST_DIR = HERE / "licitaciones_historial"
-
-licitacion = None
-if XLSX_LIC.exists():
-    wb2 = openpyxl.load_workbook(XLSX_LIC, data_only=True)
-
-    def sheet_rows(name, start=2):
-        ws = wb2[name]
-        for row in ws.iter_rows(min_row=start, values_only=True):
-            if row[0] is None:
-                continue
-            yield row
-
-    portada = {r[0]: r[1] for r in wb2["Portada"].iter_rows(min_row=1, values_only=True) if r[0]}
-    rollover = {r[0]: r[1] for r in sheet_rows("Rollover")}
-    monet = [{"concepto": r[0], "valor": r[1], "unidad": r[2]} for r in sheet_rows("Monetizacion") if r[2]]
-    composicion = [{"categoria": r[0], "monto": r[1], "pct": r[2], "color": r[3]}
-                   for r in sheet_rows("Composicion") if r[3]]
-    timeline = [{"instrumento": r[0], "fecha_antes": str(r[1]) if r[1] else None,
-                 "fecha_ahora": str(r[2]) if r[2] else None, "caption": r[3]}
-                for r in sheet_rows("Timeline")]
-
-    MESES = {"enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6, "julio": 7,
-             "agosto": 8, "septiembre": 9, "octubre": 10, "noviembre": 11, "diciembre": 12}
-    fecha_lic = None
-    subt = portada.get("Subtítulo", "") or ""
-    m = re.search(r"(\d{1,2})\s+de\s+([a-zA-Zñáéíóú]+)\s+de\s+(\d{4})", subt)
-    if m:
-        dia, mes_txt, anio = m.groups()
-        mes = MESES.get(mes_txt.lower())
-        if mes:
-            fecha_lic = f"{anio}-{mes:02d}-{int(dia):02d}"
-
-    licitacion = {
-        "titulo": portada.get("Título"),
-        "subtitulo": portada.get("Subtítulo"),
-        "fecha": fecha_lic,
-        "rollover": rollover,
-        "monetizacion": monet,
-        "composicion": composicion,
-        "timeline": timeline,
-    }
-
-    # Archivar esta licitación para no perderla cuando datos_informe.xlsx se
-    # reemplace por la próxima. Se guarda un JSON por fecha en licitaciones_historial/.
-    if fecha_lic:
-        HIST_DIR.mkdir(exist_ok=True)
-        (HIST_DIR / f"{fecha_lic}.json").write_text(
-            json.dumps(licitacion, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-    else:
-        print("Aviso: no se pudo determinar la fecha de la licitación, no se archivó en licitaciones_historial/.")
 
 # ---------- 2a-bis. leer colocaciones_deuda.xlsx (registro de la Oficina Nacional de --------
 # ---------- Crédito Público) y armar UNA licitación por cada fecha de colocación -----------
@@ -181,7 +129,7 @@ if XLSX_LIC.exists():
 # efectivamente adjudicado. Para actualizar: reemplazar colocaciones_deuda.xlsx por la
 # versión nueva que publique la Oficina Nacional de Crédito Público y volver a correr esto
 # (o simplemente pushear — el workflow lo hace solo).
-XLSX_COLOC = Path(sys.argv[3]) if len(sys.argv) > 3 else HERE / "colocaciones_deuda.xlsx"
+XLSX_COLOC = Path(sys.argv[2]) if len(sys.argv) > 2 else HERE / "colocaciones_deuda.xlsx"
 
 COLOC_SHEETS = {
     "Bonos": "bono", "Letras": "letra",
@@ -320,12 +268,8 @@ if XLSX_COLOC.exists():
             merged["subtitulo"] = existing.get("subtitulo") or lic["subtitulo"]
             merged["resumenExcel"] = lic["resumenExcel"]
             merged["instrumentosExcel"] = lic["instrumentosExcel"]
-            if not existing.get("rollover"):
-                merged["composicion"] = lic["composicion"]
-            else:
-                merged.setdefault("composicion", lic["composicion"])
-            ex_origen = existing.get("origen")
-            merged["origen"] = "mixto" if (ex_origen and ex_origen != "excel") else "excel"
+            merged["composicion"] = lic["composicion"]
+            merged["origen"] = "excel"
             path.write_text(json.dumps(merged, ensure_ascii=False, indent=2), encoding="utf-8")
         print(f"Colocaciones de deuda: {len(colocaciones_all)} filas -> {len(nuevas_lic)} licitaciones archivadas en licitaciones_historial/.")
     else:
@@ -377,3 +321,165 @@ html = TEMPLATE.replace("__DASHBOARD_DATA__", json_str).replace("__AS_OF__", as_
 out_html = HERE / "monetario.html"
 out_html.write_text(html, encoding="utf-8")
 print(f"HTML generado: {out_html}")
+
+# ---------- 4. balance simplificado del BCRA (activo/pasivo), para la portada ----------
+series_by_id = {s["id"]: s for s in all_series}
+def last_val(sid):
+    s = series_by_id.get(sid)
+    return s["data"][-1][1] if s and s["data"] else None
+
+res_usd, fx, bm, pases, letras = (last_val(i) for i in ("RES_3", "RES_16", "BM_30", "INS_2", "INS_7"))
+activo_pasivo = None
+if res_usd is not None and fx is not None and bm is not None:
+    activo = res_usd * fx
+    pasivo = bm + (pases or 0) + (letras or 0)
+    activo_pasivo = {
+        "fecha": as_of, "activo": activo, "pasivo": pasivo,
+        "base_monetaria": bm, "instrumentos": (pases or 0) + (letras or 0),
+        "reservas_usd": res_usd, "tipo_cambio": fx,
+        "cobertura_pct": (activo / pasivo * 100) if pasivo else None,
+    }
+
+# ---------- 5. armar informe.html (portada del sitio) ----------
+def fmt_ar(n, decimals=2):
+    if n is None:
+        return "s/d"
+    s = f"{n:,.{decimals}f}"
+    return s.replace(",", "§").replace(".", ",").replace("§", ".")
+
+def fmt_date_ddmmyyyy(iso):
+    if not iso:
+        return "s/d"
+    y, m, d = iso.split("-")
+    return f"{d}/{m}/{y}"
+
+ap_html = ""
+if activo_pasivo:
+    ap = activo_pasivo
+    max_total = max(ap["activo"], ap["pasivo"]) or 1
+    w_activo = ap["activo"] / max_total * 100
+    w_bm = ap["base_monetaria"] / max_total * 100
+    w_ins = ap["instrumentos"] / max_total * 100
+    cobertura_txt = f'<div class="ap-cov">Las reservas cubren <b>{fmt_ar(ap["cobertura_pct"], 0)}%</b> del pasivo</div>' if ap["cobertura_pct"] is not None else ""
+    ap_html = f"""
+    <div class="ap-card">
+      <div class="ap-head">
+        <div class="section-title" style="margin:0;font-size:14px;">Balance simplificado del BCRA</div>
+        {cobertura_txt}
+      </div>
+      <div class="ap-row">
+        <div class="ap-row-label"><span>Activo — Reservas internacionales</span><span class="ap-row-total">${fmt_ar(ap['activo']/1e6)} Bn</span></div>
+        <div class="ap-bar-track"><div class="ap-bar-fill activo" style="width:{w_activo:.1f}%"></div></div>
+      </div>
+      <div class="ap-row">
+        <div class="ap-row-label"><span>Pasivo — Base monetaria + instrumentos remunerados</span><span class="ap-row-total">${fmt_ar(ap['pasivo']/1e6)} Bn</span></div>
+        <div class="ap-bar-track">
+          <div class="ap-bar-fill bm" style="width:{w_bm:.1f}%"></div>
+          <div class="ap-bar-fill ins" style="width:{w_ins:.1f}%"></div>
+        </div>
+      </div>
+      <div class="ap-legend">
+        <span><i class="dot activo"></i>Reservas (US$ {fmt_ar(ap['reservas_usd'],0)} M a ${fmt_ar(ap['tipo_cambio'])})</span>
+        <span><i class="dot bm"></i>Base monetaria</span>
+        <span><i class="dot ins"></i>Pases + letras/notas BCRA</span>
+      </div>
+      <p class="section-sub" style="margin:10px 0 0;font-size:11px;">Aproximación: no descuenta pasivos en
+        dólares del BCRA ni otras partidas del balance real. Al {fmt_date_ddmmyyyy(ap['fecha'])}.</p>
+    </div>"""
+
+TIPO_LABELS_UI = {"bono": "Bonos", "letra": "Letras", "otra_operacion": "Otras operaciones"}
+lic_cards_html = ""
+for lic in licitaciones[:8]:
+    re_ = lic.get("resumenExcel") or {}
+    ve_ars = re_.get("veAdjudicadoArs") or 0
+    ve_usd = re_.get("veAdjudicadoUsd") or 0
+    n_instr = re_.get("cantidadInstrumentos", 0)
+    ars_txt = f"${fmt_ar(ve_ars/1e6)} Bn" if ve_ars else "s/d"
+    usd_txt = f' · USD {fmt_ar(ve_usd,0)} M' if ve_usd else ""
+    comp = lic.get("composicion") or []
+    comp_txt = " · ".join(f"{c['categoria']} {fmt_ar((c.get('pct') or 0)*100,0)}%" for c in comp if c.get("categoria") != "TOTAL")
+    lic_cards_html += f"""
+      <div class="lic-item">
+        <div class="lic-item-date">{fmt_date_ddmmyyyy(lic.get('fecha'))}</div>
+        <div class="lic-item-val">{ars_txt}{usd_txt}</div>
+        <div class="lic-item-sub">{n_instr} instrumento{'s' if n_instr != 1 else ''} colocado{'s' if n_instr != 1 else ''}{' · ' + comp_txt if comp_txt else ''}</div>
+      </div>"""
+
+INFORME_HTML = f"""<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Licitaciones e Indicadores Monetarios - Argentina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{{
+    --navy:#0B2547; --blue:#2C5FA8; --blue-light:#E7EFFB; --sky:#5B8FD9;
+    --green:#1E8A5F; --amber:#C2571B; --paper:#F6F7FB; --ink:#0B2547; --ink-soft:#5B6472; --line:#DCE3EF;
+  }}
+  *{{box-sizing:border-box;}}
+  html,body{{margin:0;background:#DCE3EF;font-family:'Inter',sans-serif;color:var(--ink);}}
+  body{{display:flex;justify-content:center;padding:32px 12px;}}
+  .page{{width:900px;max-width:100%;background:var(--paper);border-radius:22px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(11,37,71,.35);}}
+  .hero{{background:linear-gradient(135deg,var(--navy) 0%,#173B72 60%,var(--blue) 100%);color:#fff;padding:36px 44px 30px;position:relative;overflow:hidden;}}
+  .hero::after{{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.06);}}
+  .eyebrow{{font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:#AFC7EE;font-weight:600;margin-bottom:10px;}}
+  h1{{font-family:'Space Grotesk',sans-serif;font-size:26px;line-height:1.2;margin:0 0 8px;font-weight:700;max-width:620px;}}
+  .hero p{{margin:0;color:#D7E3F6;font-size:14px;max-width:600px;}}
+  .hero a{{color:#AFC7EE;}}
+  .section{{padding:26px 44px 4px;}}
+  .section-title{{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;color:var(--navy);margin:0 0 4px;}}
+  .section-sub{{font-size:12.5px;color:var(--ink-soft);margin:0 0 14px;line-height:1.5;}}
+  .ap-card{{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin:0 44px 22px;}}
+  .ap-head{{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px;}}
+  .ap-cov{{font-size:12px;color:var(--ink-soft);}}
+  .ap-cov b{{color:var(--navy);font-family:'Space Grotesk',sans-serif;}}
+  .ap-row{{margin-bottom:10px;}}
+  .ap-row-label{{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft);margin-bottom:4px;}}
+  .ap-row-total{{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);}}
+  .ap-bar-track{{display:flex;height:16px;border-radius:8px;overflow:hidden;background:var(--line);}}
+  .ap-bar-fill{{height:100%;}}
+  .ap-bar-fill.activo{{background:var(--green);}}
+  .ap-bar-fill.bm{{background:var(--blue);}}
+  .ap-bar-fill.ins{{background:var(--amber);}}
+  .ap-legend{{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--ink-soft);margin-top:10px;}}
+  .ap-legend .dot{{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}}
+  .ap-legend .dot.activo{{background:var(--green);}} .ap-legend .dot.bm{{background:var(--blue);}} .ap-legend .dot.ins{{background:var(--amber);}}
+  .lic-list{{display:grid;gap:10px;margin:0 44px 8px;}}
+  .lic-item{{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;}}
+  .lic-item-date{{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);font-size:13px;min-width:80px;}}
+  .lic-item-val{{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--blue);font-size:13px;}}
+  .lic-item-sub{{font-size:11.5px;color:var(--ink-soft);flex:1;text-align:right;}}
+  .footer{{padding:20px 44px 30px;font-size:11px;color:#8A93A3;line-height:1.6;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="hero">
+    <div class="eyebrow">Coyuntura monetaria argentina</div>
+    <h1>Licitaciones del Tesoro e indicadores monetarios del BCRA</h1>
+    <p>Actualizado automáticamente a partir de dos fuentes oficiales: el registro de Colocaciones de Deuda de
+      la Oficina Nacional de Crédito Público y las series monetarias diarias del BCRA.</p>
+    <p style="margin-top:12px;"><a href="monetario.html">Ir al explorador interactivo →</a></p>
+  </div>
+  {ap_html}
+  <div class="section">
+    <div class="section-title">Últimas licitaciones</div>
+    <div class="section-sub">Valor efectivo adjudicado por fecha de colocación. Ver el detalle completo, con
+      composición e instrumentos, en el explorador.</div>
+  </div>
+  <div class="lic-list">{lic_cards_html or '<p class="section-sub">Todavía no hay licitaciones archivadas.</p>'}</div>
+  <div class="footer">
+    Fuentes: registro de Colocaciones de Deuda (Oficina Nacional de Crédito Público) y series.xlsm
+    (Gerencia de Estadísticas Monetarias, BCRA — datos provisorios sujetos a revisión). Página generada
+    automáticamente.
+  </div>
+</div>
+</body>
+</html>
+"""
+
+out_informe = HERE / "informe.html"
+out_informe.write_text(INFORME_HTML, encoding="utf-8")
+print(f"HTML generado: {out_informe}")
