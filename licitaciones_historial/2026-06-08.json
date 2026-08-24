@@ -1,0 +1,48 @@
+{
+  "fecha": "2026-06-08",
+  "titulo": "Licitación del Tesoro — 08/06/2026",
+  "subtitulo": "Fuente: registro de Colocaciones de Deuda (2 instrumentos colocados).",
+  "resumenExcel": {
+    "veAdjudicadoArs": 0,
+    "veAdjudicadoUsd": 0,
+    "cantidadInstrumentos": 2
+  },
+  "instrumentosExcel": [
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONO R.A./U$S/STEP UP/09-07-2035",
+      "fecha_emision": "2020-09-04",
+      "vencimiento": "2035-07-09",
+      "moneda": "MONEDA EXTRANJERA",
+      "moneda_origen": "USD",
+      "fecha_colocacion": "2026-06-08",
+      "valor_nominal": 4390.330748,
+      "precio_emision": null,
+      "vida_promedio": 9.08611111111111,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 31,
+      "nuevo": true
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONO R.A./U$S/STEP UP/09-01-2038",
+      "fecha_emision": "2020-09-04",
+      "vencimiento": "2038-01-09",
+      "moneda": "MONEDA EXTRANJERA",
+      "moneda_origen": "USD",
+      "fecha_colocacion": "2026-06-08",
+      "valor_nominal": 2261.685537,
+      "precio_emision": null,
+      "vida_promedio": 11.58611111111111,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 31,
+      "nuevo": true
+    }
+  ],
+  "composicion": [],
+  "origen": "excel"
+}

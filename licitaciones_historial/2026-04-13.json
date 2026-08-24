@@ -1,0 +1,82 @@
+{
+  "fecha": "2026-04-13",
+  "titulo": "Licitación del Tesoro — 13/04/2026",
+  "subtitulo": "Fuente: registro de Colocaciones de Deuda (4 instrumentos colocados).",
+  "resumenExcel": {
+    "veAdjudicadoArs": 0,
+    "veAdjudicadoUsd": 0,
+    "cantidadInstrumentos": 4
+  },
+  "instrumentosExcel": [
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONCAP/$/15-01-2027",
+      "fecha_emision": "2025-01-31",
+      "vencimiento": "2027-01-15",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-04-13",
+      "valor_nominal": 4726969.564424,
+      "precio_emision": null,
+      "vida_promedio": 0.7555555555555555,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 18,
+      "nuevo": false
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONCAP/$/31-05-2027",
+      "fecha_emision": "2025-12-15",
+      "vencimiento": "2027-05-31",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-04-13",
+      "valor_nominal": 4726969.56,
+      "precio_emision": null,
+      "vida_promedio": 1.1333333333333333,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 18,
+      "nuevo": true
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "LELINK/U$D/30-09-2026",
+      "fecha_emision": "2026-03-16",
+      "vencimiento": "2026-09-30",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "USD",
+      "fecha_colocacion": "2026-04-13",
+      "valor_nominal": 612.41,
+      "precio_emision": null,
+      "vida_promedio": 0.4638888888888889,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 18,
+      "nuevo": false
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONTE/U$S/30-06-2027 - Paga en pesos",
+      "fecha_emision": "2026-02-27",
+      "vencimiento": "2027-06-30",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "USD",
+      "fecha_colocacion": "2026-04-13",
+      "valor_nominal": 612.41,
+      "precio_emision": null,
+      "vida_promedio": 1.2138888888888888,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 18,
+      "nuevo": false
+    }
+  ],
+  "composicion": [],
+  "origen": "excel"
+}

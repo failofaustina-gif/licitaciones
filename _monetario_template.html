@@ -211,20 +211,21 @@
       <div class="panel" id="panel-licitacion">
         <div class="section-title">Licitación ↔ Monetario</div>
         <p class="section-sub" id="lic-sub">Elegí qué licitación ver y su cruce con el movimiento de la base
-          monetaria e instrumentos del BCRA alrededor de esa fecha. Cada licitación que se carga al repositorio
-          queda archivada acá, así no se pierde al subir la siguiente.</p>
+          monetaria e instrumentos del BCRA alrededor de esa fecha. La mayoría vienen del registro de
+          Colocaciones de Deuda (una por cada fecha de colocación distinta que tenga cargada); las que además
+          tienen el comunicado en PDF suman ofertas recibidas y montos ofertados.</p>
 
         <div class="help-box" id="lic-upload-box">
-          <b>Cargar licitaciones nuevas:</b> subí acá el <b>Excel de Colocaciones de Deuda</b> de la Oficina
-          Nacional de Crédito Público (recomendado — es una tabla, no cambia de formato) y/o el <b>comunicado
-          de resultados (PDF)</b> de la Secretaría de Finanzas. Todo se procesa en tu navegador, no se sube a
-          ningún servidor. El Excel arma automáticamente <b>una licitación por cada fecha de colocación</b>
-          que tenga adentro (podés subir el registro entero y se agregan todas de una); el PDF suma, además,
-          ofertas recibidas y montos ofertados (dato que no está en el Excel) para la fecha de ese comunicado
-          — el formato del PDF cambia bastante de un comunicado a otro, así que a veces no se puede leer.
-          Se agregan a la lista de acá abajo para que las veas al toque, pero <b>no quedan guardadas</b>: si
-          recargás la página, desaparecen. Para que queden disponibles para siempre (y para cualquiera que
-          entre al sitio), pasame los archivos y los sumo al repositorio.
+          <b>Previsualizar una licitación antes de subirla:</b> subí acá el <b>Excel de Colocaciones de
+          Deuda</b> de la Oficina Nacional de Crédito Público (recomendado — es una tabla, no cambia de
+          formato) y/o el <b>comunicado de resultados (PDF)</b> de la Secretaría de Finanzas. Todo se procesa
+          en tu navegador, no se sube a ningún servidor. El Excel arma automáticamente <b>una licitación por
+          cada fecha de colocación</b> que tenga adentro (podés subir el registro entero y se agregan todas
+          de una); el PDF suma, además, ofertas recibidas y montos ofertados (dato que no está en el Excel)
+          para la fecha de ese comunicado — el formato del PDF cambia bastante de un comunicado a otro, así
+          que a veces no se puede leer. Se agregan a la lista de acá abajo para que las veas al toque, pero
+          <b>no quedan guardadas</b>: si recargás la página, desaparecen. Para que queden disponibles para
+          siempre (y para cualquiera que entre al sitio), subí los archivos al repositorio — ver el README.
           <div class="toolbar" style="margin:10px 0 4px;">
             <label style="flex-direction:column;align-items:flex-start;gap:2px;">Colocaciones de deuda (Excel — recomendado)
               <input type="file" id="lic-xlsx-input" accept=".xlsx,.xls">
@@ -993,7 +994,15 @@ function parseComunicado(pagesItems){
 }
 
 // -- parser del registro "Colocaciones de Deuda" (Oficina Nacional de Crédito Público, Excel) --
-const COLOC_SHEETS = { 'Bonos':'bono', 'Letras':'letra', 'Letras ISP':'letra_isp', 'Otras Operaciones':'otra_operacion', 'Canjes- Conversiones':'canje' };
+// OJO: dos hojas quedan afuera a propósito.
+// - "Canjes- Conversiones": estructura totalmente distinta (dos sub-tablas apiladas, "Canje"
+//   y "Conversiones", esta última con columnas "Instrumento a entregar" / "Instrumento a dar
+//   de baja" en vez de "Valor Efectivo") — tratar de encajarla en el mismo parseo termina
+//   leyendo nombres de instrumentos donde se esperan números.
+// - "Letras ISP" (intra-sector público): por definición son deuda entre organismos del Estado
+//   (p. ej. letras técnicas emitidas directamente al BCRA), no colocaciones de mercado — y
+//   mezclan magnitudes completamente distintas al resto de la hoja.
+const COLOC_SHEETS = { 'Bonos':'bono', 'Letras':'letra', 'Otras Operaciones':'otra_operacion' };
 function excelDateToISO(v){
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   if (typeof v === 'number') { const d = new Date(Math.round((v - 25569) * 86400 * 1000)); return d.toISOString().slice(0, 10); }
@@ -1020,14 +1029,15 @@ function parseColocaciones(workbook, sheetToRows){
       const row = rows[r]; if (!row || !row[cNombre]) continue;
       const fechaColocacion = cColocacion !== -1 ? excelDateToISO(row[cColocacion]) : null;
       if (!fechaColocacion) continue;
+      const num = (v) => typeof v === 'number' ? v : null; // defensivo: descarta si no es numérico
       out.push({ tipo, hoja: sheetName, nombre: String(row[cNombre]).trim(),
         fecha_emision: cEmision !== -1 ? excelDateToISO(row[cEmision]) : null,
         vencimiento: cVencimiento !== -1 ? excelDateToISO(row[cVencimiento]) : null,
         moneda: cMoneda !== -1 ? row[cMoneda] : null, moneda_origen: cMonedaOrigen !== -1 ? row[cMonedaOrigen] : null,
         fecha_colocacion: fechaColocacion,
-        valor_nominal: cVN !== -1 ? row[cVN] : null,
-        valor_efectivo: cVE !== -1 ? row[cVE] : (cVTA !== -1 ? row[cVTA] : null),
-        precio_emision: cPrecio !== -1 ? row[cPrecio] : null, vida_promedio: cVida !== -1 ? row[cVida] : null,
+        valor_nominal: cVN !== -1 ? num(row[cVN]) : null,
+        valor_efectivo: cVE !== -1 && num(row[cVE]) !== null ? num(row[cVE]) : (cVTA !== -1 ? num(row[cVTA]) : null),
+        precio_emision: cPrecio !== -1 ? num(row[cPrecio]) : null, vida_promedio: cVida !== -1 ? num(row[cVida]) : null,
         resolucion: cResolucion !== -1 ? row[cResolucion] : null, numero: cNumero !== -1 ? row[cNumero] : null });
     }
   }

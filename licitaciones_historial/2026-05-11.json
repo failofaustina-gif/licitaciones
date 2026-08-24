@@ -1,0 +1,65 @@
+{
+  "fecha": "2026-05-11",
+  "titulo": "Licitación del Tesoro — 11/05/2026",
+  "subtitulo": "Fuente: registro de Colocaciones de Deuda (3 instrumentos colocados).",
+  "resumenExcel": {
+    "veAdjudicadoArs": 0,
+    "veAdjudicadoUsd": 0,
+    "cantidadInstrumentos": 3
+  },
+  "instrumentosExcel": [
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONTE/U$S/30-06-2026",
+      "fecha_emision": "2024-02-28",
+      "vencimiento": "2026-06-30",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "USD",
+      "fecha_colocacion": "2026-05-11",
+      "valor_nominal": 1578.87,
+      "precio_emision": null,
+      "vida_promedio": 0.1361111111111111,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 24,
+      "nuevo": true
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONCAP/$/15-01-2027",
+      "fecha_emision": "2025-01-31",
+      "vencimiento": "2027-01-15",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-05-11",
+      "valor_nominal": 862504.15,
+      "precio_emision": null,
+      "vida_promedio": 0.6777777777777778,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 24,
+      "nuevo": false
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONCAP/$/31-05-2027",
+      "fecha_emision": "2025-12-15",
+      "vencimiento": "2027-05-31",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-05-11",
+      "valor_nominal": 862504.15,
+      "precio_emision": null,
+      "vida_promedio": 1.0555555555555556,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 24,
+      "nuevo": false
+    }
+  ],
+  "composicion": [],
+  "origen": "excel"
+}

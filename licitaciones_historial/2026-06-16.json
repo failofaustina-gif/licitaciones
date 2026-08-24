@@ -1,0 +1,48 @@
+{
+  "fecha": "2026-06-16",
+  "titulo": "Licitación del Tesoro — 16/06/2026",
+  "subtitulo": "Fuente: registro de Colocaciones de Deuda (2 instrumentos colocados).",
+  "resumenExcel": {
+    "veAdjudicadoArs": 0,
+    "veAdjudicadoUsd": 0,
+    "cantidadInstrumentos": 2
+  },
+  "instrumentosExcel": [
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONCAP/$/15-01-2027",
+      "fecha_emision": "2025-01-31",
+      "vencimiento": "2027-01-15",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-06-16",
+      "valor_nominal": 23776.833166,
+      "precio_emision": null,
+      "vida_promedio": 0.5805555555555556,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 33,
+      "nuevo": false
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "BONCAP/$/31-05-2027",
+      "fecha_emision": "2025-12-15",
+      "vencimiento": "2027-05-31",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-06-16",
+      "valor_nominal": 23776.833166,
+      "precio_emision": null,
+      "vida_promedio": 0.9583333333333334,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 33,
+      "nuevo": false
+    }
+  ],
+  "composicion": [],
+  "origen": "excel"
+}

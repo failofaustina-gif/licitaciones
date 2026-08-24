@@ -1,0 +1,65 @@
+{
+  "fecha": "2026-05-22",
+  "titulo": "Licitación del Tesoro — 22/05/2026",
+  "subtitulo": "Fuente: registro de Colocaciones de Deuda (3 instrumentos colocados).",
+  "resumenExcel": {
+    "veAdjudicadoArs": 0,
+    "veAdjudicadoUsd": 0,
+    "cantidadInstrumentos": 3
+  },
+  "instrumentosExcel": [
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "LECAP/$/31-07-2026",
+      "fecha_emision": "2026-01-30",
+      "vencimiento": "2026-07-31",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-05-22",
+      "valor_nominal": 173672.159684,
+      "precio_emision": null,
+      "vida_promedio": 0.19166666666666668,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 26,
+      "nuevo": false
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "LECAP/$/31-08-2026",
+      "fecha_emision": "2025-11-10",
+      "vencimiento": "2026-08-31",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-05-22",
+      "valor_nominal": 164037.509356,
+      "precio_emision": null,
+      "vida_promedio": 0.275,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 26,
+      "nuevo": true
+    },
+    {
+      "tipo": "otra_operacion",
+      "hoja": "Otras Operaciones",
+      "nombre": "LECAP/$/30-09-2026",
+      "fecha_emision": "2026-03-16",
+      "vencimiento": "2026-09-30",
+      "moneda": "MONEDA NACIONAL",
+      "moneda_origen": "ARP",
+      "fecha_colocacion": "2026-05-22",
+      "valor_nominal": 187363.49744,
+      "precio_emision": null,
+      "vida_promedio": 0.35555555555555557,
+      "valor_efectivo": null,
+      "resolucion": "RESOL",
+      "numero": 26,
+      "nuevo": false
+    }
+  ],
+  "composicion": [],
+  "origen": "excel"
+}

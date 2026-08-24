@@ -10,9 +10,9 @@ Dos páginas sobre la coyuntura monetaria argentina, publicadas en el mismo siti
    Se puede arrastrar cualquier variable a un gráfico, armar cálculos propios (por ejemplo, una aproximación
    de reservas netas, o de dinero interno vs. externo / inside-outside money, con dos casilleros arrastrables
    y coeficientes editables), expresar cualquier gráfico o cálculo como % del PBI, ver composiciones en gráfico
-   de torta, y elegir qué licitación del Tesoro (de todas las que se fueron cargando en `datos_informe.xlsx`
-   a lo largo del tiempo) cruzar con el movimiento de la base monetaria e instrumentos del BCRA alrededor de
-   esa fecha.
+   de torta, y elegir qué licitación del Tesoro (de todas las que se fueron cargando, sobre todo desde el
+   registro de Colocaciones de Deuda) cruzar con el movimiento de la base monetaria e instrumentos del BCRA
+   alrededor de esa fecha.
 
 ## Ver el sitio
 
@@ -27,56 +27,62 @@ Dos páginas sobre la coyuntura monetaria argentina, publicadas en el mismo siti
   si cambió, y regenera `monetario.html`. También se puede disparar a mano desde la pestaña **Actions** →
   *Actualizar sitio* → **Run workflow**.
 
-## Cómo actualizar la licitación (para la próxima)
+## Cómo actualizar las licitaciones (para la próxima)
 
-Hay dos formas: la manual de siempre (queda guardada para todo el mundo) y un cargador rápido en la
-propia página (solo para vos, no se guarda).
+Hay tres formas. Las dos primeras quedan **publicadas para todo el mundo**; la tercera es un cargador
+rápido solo en tu navegador, para previsualizar antes de decidir si vale la pena subir el archivo.
 
-### A. Manual — queda publicada en el sitio para siempre
+### A. Colocaciones de deuda (Excel) — recomendada, cubre muchas licitaciones de una
+
+Esta es la fuente principal. `colocaciones_deuda.xlsx` es el registro de la Oficina Nacional de Crédito
+Público (hojas Bonos/Letras/Otras Operaciones) — una tabla con columnas fijas, no cambia de formato de una
+publicación a otra. Cada vez que se genera el sitio, `build_monetario.py` lo lee entero y arma **una
+licitación por cada fecha de colocación distinta que tenga adentro**, archivándolas en
+`licitaciones_historial/` — así una sola carga puede agregar docenas de licitaciones de golpe.
+
+1. Cuando tengas una versión nueva del registro (la Oficina Nacional de Crédito Público la va actualizando
+   periódicamente), reemplazá `colocaciones_deuda.xlsx` en el repo: **Add file → Upload files** → arrastrás
+   el Excel nuevo (con ese nombre exacto) → **Commit changes**.
+2. El deploy se dispara solo en cualquier push a `main`. Esperá el tilde verde en **Actions** (1-2 minutos).
+3. Refrescá `monetario.html` — las licitaciones nuevas ya están en el selector.
+
+Limitación: el registro solo tiene lo efectivamente **adjudicado** (VN, VE, moneda, vencimiento) — no
+incluye ofertas recibidas ni montos ofertados, ni vencimientos del día (por eso no calcula rollover
+automáticamente). Tampoco se usan las hojas "Letras ISP" (son deuda intra-Estado, no de mercado, y mezclan
+magnitudes no comparables) ni "Canjes- Conversiones" (tiene una estructura de tabla totalmente distinta).
+
+### B. Comunicado de resultados (PDF) — complementa a la A con ofertas/ofertado
+
+`build_informe.py` sigue usando `datos_informe.xlsx` (con los datos del comunicado en PDF de la Secretaría
+de Finanzas: ofertas recibidas, montos ofertados, rollover) para el informe de licitaciones y para sumar
+esos datos — que el Excel de colocaciones no tiene — a la licitación de esa fecha puntual.
 
 1. Editá `datos_informe.xlsx` con los datos de la licitación nueva (hojas: Portada, Rollover, Tasas,
    Coyuntura, Composición, Timeline, Monetización, Fuentes).
 2. Subilo al repo reemplazando el archivo actual: **Add file → Upload files** → arrastrás el Excel → **Commit changes**.
-3. Andá a la pestaña **Actions** y esperá el tilde verde (1-2 minutos).
-4. Refrescá la URL de arriba — ya está actualizada.
+3. Esperá el tilde verde en **Actions** (1-2 minutos) y refrescá.
 
-Al regenerar la página, la licitación que estaba en `datos_informe.xlsx` se archiva automáticamente en
-`licitaciones_historial/` (un JSON por fecha), así queda disponible en el selector de la pestaña
-**Licitación ↔ Monetario** aunque después subas una licitación nueva que sobreescriba el Excel.
+Al regenerar la página, esta licitación se archiva automáticamente en `licitaciones_historial/` y se
+combina con lo que ya haya ahí para la misma fecha (por ejemplo, si el Excel de colocaciones ya tenía esa
+fecha, no se pisan entre sí — se completan).
 
-### B. Cargador en la página — al toque, pero solo en tu navegador
+### C. Cargador en la página — al toque, pero solo en tu navegador (para previsualizar)
 
-En la pestaña **Licitación ↔ Monetario** hay un cargador que acepta directamente los archivos oficiales,
-sin pasar por `datos_informe.xlsx`. Hay dos fuentes, y **no son igual de confiables**:
-
-- **Colocaciones de deuda (Excel) — recomendado.** Es una tabla con columnas fijas (Nombre del Instrumento,
-  Fecha colocación, Valor Nominal, Valor Efectivo, etc.), así que el parseo (con SheetJS) es robusto y no
-  depende del mes. Arma automáticamente **una licitación por cada fecha de colocación distinta que tenga
-  el archivo** — subís el registro entero una sola vez y aparecen todas en el selector de golpe, cada una
-  con el detalle de instrumentos colocados (moneda, vencimiento, VN, VE, precio de emisión, vida promedio)
-  y marcando cuáles son instrumentos nuevos y cuáles reaperturas. Limitación: el registro solo tiene lo
-  efectivamente **adjudicado** — no incluye ofertas recibidas ni montos ofertados.
-- **Comunicado de resultados (PDF), opcional.** Complementa al Excel sumando ofertas recibidas y montos
-  ofertados para la fecha de ese comunicado puntual (dato que no está en ningún otro lado). El problema es
-  que el PDF **cambia de formato de un comunicado a otro** (a veces trae un texto descriptivo antes de las
-  tablas, cambia el orden de columnas, etc.), y el parseo es heurístico — busca patrones de texto, no lee
-  una tabla real. Cuando el formato no coincide con el que sabe leer, hay un chequeo de sanidad que corta el
-  proceso y avisa en vez de mostrar datos mezclados o incorrectos. Si un PDF puntual no anda, no hay mucho
-  margen para arreglarlo genéricamente — habría que ajustar el parser a mano contra ese PDF nuevo.
-
-Si subís los dos para la misma fecha, se combinan en una sola licitación (no se pisan ni duplican).
-
-Todo el procesamiento pasa en el navegador — nada se sube a ningún servidor. Por eso mismo **no queda
-guardado**: es visible solo en esa pestaña del navegador mientras no se recargue la página, y no lo ve
-nadie más que entre al sitio. Para que quede publicado de forma permanente, hay que pasar los archivos
-para sumarlos al repositorio con la vía A.
-
-Limitación conocida: como ninguna de las dos fuentes trae los "vencimientos del día", el cargador no
-calcula rollover automáticamente (esa cifra sigue siendo manual, vía `datos_informe.xlsx`).
+En la pestaña **Licitación ↔ Monetario** hay un cargador que acepta los mismos dos archivos (Excel de
+colocaciones y/o PDF del comunicado) directamente en el navegador, sin pasar por el repositorio. Sirve para
+ver cómo va a quedar antes de decidir si lo subís de verdad (vías A/B) — pero **no queda guardado**: es
+visible solo en esa pestaña mientras no se recargue la página, y no lo ve nadie más que entre al sitio.
+El PDF, además, cambia de formato de un comunicado a otro y el parseo es heurístico (busca patrones de
+texto, no lee una tabla real); cuando el formato no coincide con el que sabe leer, hay un chequeo de
+sanidad que corta el proceso y avisa en vez de mostrar datos mezclados o incorrectos.
 
 ## Estructura
 
-- `datos_informe.xlsx` — los datos de la licitación más reciente (lo único que hay que tocar para actualizar).
+- `colocaciones_deuda.xlsx` — registro de Colocaciones de Deuda de la Oficina Nacional de Crédito Público
+  (fuente principal de licitaciones — ver sección A de arriba). Se reemplaza entero cada vez que hay una
+  versión nueva; `build_monetario.py` lo relee completo en cada build.
+- `datos_informe.xlsx` — los datos del comunicado de resultados en PDF de la licitación más reciente
+  (ofertas, ofertado, rollover — ver sección B de arriba).
 - `pbi_trimestral.json` — PBI nominal trimestral de INDEC (a tasa anualizada, igual que el Cuadro 8 de INDEC),
   usado para el toggle "% del PBI" en Gráfico, Calculadora e Insights. Se actualiza a mano cada vez que INDEC
   publica un trimestre nuevo (~3 meses de rezago) — no hay un endpoint estable para automatizarlo. Instrucciones
