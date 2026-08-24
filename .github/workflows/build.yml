@@ -3,10 +3,6 @@ name: Actualizar sitio
 on:
   push:
     branches: [main]
-    paths:
-      - "datos_informe.xlsx"
-      - "build_informe.py"
-      - "build_monetario.py"
   schedule:
     # 22:00 UTC = 19:00 hora Argentina, de lunes a viernes.
     # El BCRA publica los datos monetarios diarios durante la tarde/noche.
