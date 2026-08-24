@@ -18,7 +18,8 @@ cambian de formato de una publicación a otra, así que todo el sitio se regener
    armar cálculos propios (por ejemplo, una aproximación de reservas netas, o de dinero interno vs. externo),
    expresar cualquier gráfico o cálculo como % del PBI, ver composiciones en gráfico de torta, y elegir qué
    licitación del Tesoro cruzar con el movimiento de la base monetaria e instrumentos del BCRA alrededor de
-   esa fecha (con tarjetas que muestran cuánto varió cada serie en esa ventana).
+   esa fecha (con tarjetas que muestran cuánto varió cada serie en esa ventana), y una pestaña
+   **Calendario** con las próximas publicaciones (IPC y PBI trimestral de INDEC, licitaciones del Tesoro).
 
 ## Ver el sitio
 
@@ -73,6 +74,13 @@ recargue la página, y no lo ve nadie más que entre al sitio.
   usado para el toggle "% del PBI" en Gráfico, Calculadora e Insights. Se actualiza a mano cada vez que INDEC
   publica un trimestre nuevo (~3 meses de rezago) — no hay un endpoint estable para automatizarlo. Instrucciones
   de dónde sacar el dato nuevo adentro del archivo.
+- `calendario.json` — eventos de la pestaña **Calendario**: fechas de IPC y PBI trimestral (INDEC) y de
+  licitaciones del Tesoro (Secretaría de Finanzas). Igual que `pbi_trimestral.json`, es 100% manual — ninguna
+  de las tres fuentes tiene un endpoint o cronograma público estable para automatizar. Para agregar una fecha
+  nueva, sumá un objeto a `"eventos"` con `fecha` (`AAAA-MM-DD`), `tipo` (`ipc`, `pbi` o `licitacion`),
+  `titulo` y opcionalmente `detalle`, y subí el archivo al repo — el sitio se regenera solo. Instrucciones de
+  dónde sacar cada fecha (calendario semestral de INDEC, anuncios de licitación de la Secretaría de Finanzas)
+  adentro del archivo.
 - `licitaciones_historial/` — un JSON por cada licitación ya procesada (nombrado por fecha), generado y
   commiteado automáticamente por el workflow; es lo que alimenta el selector de licitaciones y la portada.
   No hace falta tocarlo a mano.

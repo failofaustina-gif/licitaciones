@@ -303,12 +303,27 @@ if pbi_path.exists():
 else:
     print("Aviso: no se encontró pbi_trimestral.json, no se va a poder expresar nada como % del PBI.")
 
+# ---------- 2d. calendario de publicaciones (IPC, PBI trimestral, licitaciones) ----------
+# Igual que pbi_trimestral.json: se actualiza a mano, no hay endpoint estable para ninguna de
+# las tres fuentes. Ver instrucciones adentro del archivo.
+calendario = {"eventos": [], "recurrentes": []}
+calendario_path = HERE / "calendario.json"
+if calendario_path.exists():
+    calendario_raw = json.loads(calendario_path.read_text(encoding="utf-8"))
+    calendario = {
+        "eventos": sorted(calendario_raw.get("eventos", []), key=lambda e: e.get("fecha") or ""),
+        "recurrentes": calendario_raw.get("recurrentes", []),
+    }
+else:
+    print("Aviso: no se encontró calendario.json, la pestaña Calendario va a quedar vacía.")
+
 dashboard_data = {
     "generated_at": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
     "as_of": as_of,
     "series": all_series,
     "licitaciones": licitaciones,
     "pbi": pbi_quarters,
+    "calendario": calendario,
 }
 
 json_str = json.dumps(dashboard_data, ensure_ascii=False, separators=(",", ":"))

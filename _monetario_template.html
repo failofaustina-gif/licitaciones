@@ -132,6 +132,23 @@
   .ap-legend .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
   .ap-legend .dot.activo{background:var(--green);} .ap-legend .dot.bm{background:var(--blue);} .ap-legend .dot.ins{background:var(--amber);}
 
+  .cal-list{display:grid;gap:10px;}
+  .cal-item{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;
+    padding:12px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;}
+  .cal-item.ipc{border-left-color:var(--amber);} .cal-item.pbi{border-left-color:var(--blue);}
+  .cal-item.licitacion{border-left-color:var(--green);} .cal-item.monetario{border-left-color:var(--purple);}
+  .cal-date{font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--navy);font-size:13px;min-width:150px;}
+  .cal-date .dow{color:var(--ink-soft);font-weight:500;font-size:11px;margin-left:4px;text-transform:capitalize;}
+  .cal-body{flex:1;min-width:180px;}
+  .cal-title{font-size:13px;font-weight:600;color:var(--navy);}
+  .cal-detail{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+  .cal-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;
+    border-radius:20px;white-space:nowrap;}
+  .cal-badge.ipc{background:var(--amber-light);color:var(--amber);}
+  .cal-badge.pbi{background:var(--blue-light);color:var(--blue);}
+  .cal-badge.licitacion{background:var(--green-light);color:var(--green);}
+  .cal-badge.monetario{background:#F1EBFA;color:var(--purple);}
+
   .insight-list{display:grid;gap:12px;}
   .insight{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;
     padding:14px 16px;}
@@ -164,6 +181,7 @@
     <button class="tab-btn" data-tab="composicion">Composición</button>
     <button class="tab-btn" data-tab="licitacion">Licitación ↔ Monetario</button>
     <button class="tab-btn" data-tab="insights">Insights</button>
+    <button class="tab-btn" data-tab="calendario">Calendario</button>
   </div>
 
   <div class="layout">
@@ -277,6 +295,14 @@
         <div class="toolbar"><label><input type="checkbox" id="pbi-chk-io"> Expresar como % del PBI</label></div>
         <div id="io-result-wrap"></div>
         <div class="chart-card"><div class="chart-wrap small"><canvas id="io-chart"></canvas></div></div>
+      </div>
+
+      <div class="panel" id="panel-calendario">
+        <div class="section-title">Calendario</div>
+        <p class="section-sub">Próximas publicaciones de datos que usa el sitio: IPC y PBI trimestral
+          (INDEC), y licitaciones del Tesoro (Secretaría de Finanzas). Se carga a mano — ver el README para
+          cómo agregar fechas nuevas.</p>
+        <div class="cal-list" id="cal-list"></div>
       </div>
 
     </div>
@@ -1198,6 +1224,42 @@ function renderIOTab(){
 }
 document.getElementById('pbi-chk-io').addEventListener('change', renderIOTab);
 
+// ---------- CALENDARIO ----------
+const CAL_LABELS = {ipc:'IPC', pbi:'PBI', licitacion:'Licitación', monetario:'BCRA'};
+function calItemHtml(ev, dated){
+  const tipo = ev.tipo || 'otro';
+  const dateHtml = dated ? (() => {
+    const d = new Date(ev.fecha);
+    const dow = d.toLocaleDateString('es-AR', {weekday:'long', timeZone:'UTC'});
+    return `<div class="cal-date">${fmtDate(ev.fecha)} <span class="dow">${dow}</span></div>`;
+  })() : '';
+  return `<div class="cal-item ${tipo}">
+    ${dateHtml}
+    <div class="cal-body"><div class="cal-title">${ev.titulo||''}</div>${ev.detalle ? `<div class="cal-detail">${ev.detalle}</div>` : ''}</div>
+    <span class="cal-badge ${tipo}">${CAL_LABELS[tipo]||tipo}</span>
+  </div>`;
+}
+function renderCalendario(){
+  const host = document.getElementById('cal-list');
+  const cal = DATA.calendario || {eventos:[], recurrentes:[]};
+  const hoyISO = new Date().toISOString().slice(0,10);
+  const eventos = (cal.eventos||[]).slice().sort((a,b) => (a.fecha||'') < (b.fecha||'') ? -1 : 1);
+  let html = '';
+  if (!eventos.length) {
+    html += '<p class="section-sub">Todavía no hay eventos cargados — ver el README para agregar fechas.</p>';
+  } else {
+    eventos.forEach(ev => {
+      const pasado = (ev.fecha||'') < hoyISO;
+      html += `<div style="${pasado?'opacity:.45;':''}">${calItemHtml(ev, true)}</div>`;
+    });
+  }
+  if (cal.recurrentes && cal.recurrentes.length) {
+    html += '<div class="section-title" style="font-size:13px;margin-top:16px;">Recurrentes</div>';
+    cal.recurrentes.forEach(r => { html += calItemHtml(r, false); });
+  }
+  host.innerHTML = html;
+}
+
 // ---------- init ----------
 renderActivoPasivo();
 renderResumen();
@@ -1208,6 +1270,7 @@ setupLicSelect();
 renderLicitacion();
 renderIOTab();
 renderInsights();
+renderCalendario();
 </script>
 </body>
 </html>

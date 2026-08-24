@@ -1,0 +1,15 @@
+{
+  "_fuente": "INDEC (calendario oficial de difusión de indicadores, semestral) para IPC y PBI trimestral; Secretaría de Finanzas para licitaciones del Tesoro.",
+  "_actualizacion": "manual - no hay un endpoint estable para ninguna de las tres fuentes. Agregar fechas nuevas a mano a medida que se confirman: INDEC publica su calendario semestral en https://www.indec.gob.ar/indec/web/Institucional-Indec-Calendario (bajar el PDF 'Calendario de difusión' del semestre correspondiente, ahí están las fechas de IPC e 'Informe de avance del nivel de actividad' que es la publicación de PBI trimestral). La Secretaría de Finanzas anuncia cada licitación (el 'llamado') aproximadamente una semana antes, en https://www.argentina.gob.ar/economia/licitaciones — no hay un cronograma público con todas las fechas del año con suficiente anticipación, así que esta lista se completa licitación por licitación a medida que se anuncian.",
+  "eventos": [
+    {"fecha": "2026-09-10", "tipo": "ipc", "titulo": "IPC agosto 2026", "detalle": "INDEC, Índice de Precios al Consumidor."},
+    {"fecha": "2026-09-17", "tipo": "pbi", "titulo": "PBI trimestral — 2do trimestre 2026", "detalle": "INDEC, Informe de avance del nivel de actividad."},
+    {"fecha": "2026-10-13", "tipo": "ipc", "titulo": "IPC septiembre 2026", "detalle": "INDEC, Índice de Precios al Consumidor."},
+    {"fecha": "2026-11-12", "tipo": "ipc", "titulo": "IPC octubre 2026", "detalle": "INDEC, Índice de Precios al Consumidor."},
+    {"fecha": "2026-12-15", "tipo": "ipc", "titulo": "IPC noviembre 2026", "detalle": "INDEC, Índice de Precios al Consumidor."},
+    {"fecha": "2026-12-16", "tipo": "pbi", "titulo": "PBI trimestral — 3er trimestre 2026", "detalle": "INDEC, Informe de avance del nivel de actividad."}
+  ],
+  "recurrentes": [
+    {"tipo": "monetario", "titulo": "Actualización de series.xlsm", "detalle": "BCRA, todos los días hábiles — automático, no requiere carga manual."}
+  ]
+}
