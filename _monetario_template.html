@@ -276,12 +276,14 @@
         <div class="insight-list" id="insight-list"></div>
 
         <div class="section-title" style="font-size:15px;margin-top:22px;">Dinero interno vs. dinero externo</div>
-        <p class="section-sub"><b>Outside money</b>: pasivo del BCRA/Estado, respaldo directo del sector privado
-          (por defecto, la base monetaria). <b>Inside money</b>: creado dentro del sistema bancario vía crédito,
-          que en el agregado se compensa entre acreedores y deudores privados (por defecto, M2 menos la base
-          monetaria). Son solo un punto de partida — arrastrá variables a cada casillero para armar tu propia
-          definición (por ejemplo, sumar pases y letras del BCRA al lado externo, o separar depósitos del sector
-          privado de los totales).</p>
+        <p class="section-sub"><b>Outside money</b>: pasivo del BCRA/Estado en manos del sector privado (por
+          defecto, Base Monetaria más Cuasimonedas). <b>Inside money</b>: creado dentro del sistema bancario
+          vía crédito, que en el agregado se compensa entre acreedores y deudores privados (por defecto, M2
+          menos Billetes y Monedas en Poder del Público). Son solo un punto de partida — arrastrá variables a
+          cada casillero para armar tu propia definición.</p>
+        <p class="section-sub" style="font-size:11px;margin-top:-10px;">Inside money y outside money son
+          categorías teóricas construidas a partir de series del BCRA; no son agregados oficiales publicados
+          bajo esos nombres.</p>
         <div class="io-grid">
           <div class="io-col">
             <div class="io-col-title">Dinero externo (outside money)</div>
@@ -368,7 +370,17 @@ function fmtDate(iso){
 }
 
 // ---------- estado (persistido en localStorage) ----------
+// Outside money = Base Monetaria más Cuasimonedas (BM_32, "Saldos Diarios - Base Monetaria más
+// cuasimonedas - Total (14) = (12+13)"). Inside money = M2 en pesos (DEP_29) menos Billetes y Monedas
+// en Poder del Público (BM_26, serie de Saldos Diarios, no de Variaciones Diarias) — NO M2 menos Base
+// Monetaria (la base monetaria incluye reservas bancarias, que no son parte de M2).
 const IO_DEFAULT = {
+  outside: [{id:'BM_32', coef:1}],
+  inside: [{id:'DEP_29', coef:1}, {id:'BM_26', coef:-1}],
+};
+// fórmula vieja (previa a la corrección conceptual) — si el usuario tiene esto guardado en su
+// navegador y nunca lo tocó, se migra a la nueva por defecto en vez de respetar el valor guardado.
+const IO_DEFAULT_OLD = {
   outside: [{id:'BM_30', coef:1}],
   inside: [{id:'DEP_29', coef:1}, {id:'BM_30', coef:-1}],
 };
@@ -376,7 +388,14 @@ let state = {chart: [], calc: [], pie: [], io: null};
 let hadSavedIO = false;
 try {
   const saved = JSON.parse(localStorage.getItem('monetario_state') || 'null');
-  if (saved) { state = Object.assign(state, saved); hadSavedIO = !!(saved.io); }
+  if (saved) {
+    state = Object.assign(state, saved);
+    hadSavedIO = !!(saved.io);
+    if (hadSavedIO && saved.io && JSON.stringify(saved.io.outside) === JSON.stringify(IO_DEFAULT_OLD.outside)
+        && JSON.stringify(saved.io.inside) === JSON.stringify(IO_DEFAULT_OLD.inside)) {
+      hadSavedIO = false;
+    }
+  }
 } catch(e) {}
 function saveState(){
   try { localStorage.setItem('monetario_state', JSON.stringify(state)); } catch(e) {}
@@ -1110,13 +1129,13 @@ function renderInsights(){
     const lastIdx = io0.dates.length - 1;
     const outsideNow = io0.outsideVals[lastIdx], insideNow = io0.insideVals[lastIdx];
     if (outsideNow !== null && insideNow !== null) {
-      const total = outsideNow + insideNow;
-      const pctInside = total ? insideNow/total*100 : null;
-      if (pctInside !== null) {
-        items.push({t:'Dinero interno (inside money) vs. externo (outside money)', n: arNumber(pctInside,0)+'% interno',
-          d:`Con la fórmula armada en la pestaña Insights, un ${arNumber(pctInside,0)}% ($${arNumber(insideNow/1e6,1)} bn)
-          es dinero interno y el resto, $${arNumber(outsideNow/1e6,1)} bn, es dinero externo, al ${fmtDate(io0.dates[lastIdx])}.
-          Ver el detalle y la evolución en la pestaña Insights.`});
+      const outsidePct = asPctPbi(outsideNow, io0.dates[lastIdx]);
+      const insidePct = asPctPbi(insideNow, io0.dates[lastIdx]);
+      if (outsidePct !== null && insidePct !== null) {
+        items.push({t:'Dinero interno (inside money) y externo (outside money)', n: arNumber(outsidePct,0)+'% + '+arNumber(insidePct,0)+'% del PBI',
+          d:`Con la fórmula armada en la pestaña Insights, dinero externo equivale a ${arNumber(outsidePct,0)}%
+          del PBI y dinero interno a ${arNumber(insidePct,0)}% del PBI, al ${fmtDate(io0.dates[lastIdx])}. Son
+          categorías teóricas que no se suman a un único total. Ver el detalle en la pestaña Insights.`});
       }
     }
   }
@@ -1196,14 +1215,12 @@ function renderIOTab(){
   while (lastIdx >= 0 && (outsideVals[lastIdx] === null || insideVals[lastIdx] === null)) lastIdx--;
   if (lastIdx >= 0) {
     const outsideNow = outsideVals[lastIdx], insideNow = insideVals[lastIdx];
-    const total = outsideNow + insideNow;
-    const pct = total ? insideNow/total*100 : null;
     const suf = pctPbi ? '%' : '';
     resultWrap.innerHTML = `<div class="io-summary">
       <div class="box"><div class="lbl">Dinero externo</div><div class="val">${arNumber(outsideNow,1)}${suf}</div>
         <div class="note">al ${fmtDate(dates[lastIdx])}</div></div>
       <div class="box alt"><div class="lbl">Dinero interno</div><div class="val">${arNumber(insideNow,1)}${suf}</div>
-        <div class="note">${pct!==null ? arNumber(pct,0)+'% del total' : ''}</div></div>
+        <div class="note">al ${fmtDate(dates[lastIdx])}</div></div>
     </div>`;
   } else {
     resultWrap.innerHTML = '<p class="section-sub">Las variables elegidas en cada casillero no comparten ninguna fecha en común entre sí.</p>';
