@@ -47,25 +47,32 @@ Al regenerar la página, la licitación que estaba en `datos_informe.xlsx` se ar
 ### B. Cargador en la página — al toque, pero solo en tu navegador
 
 En la pestaña **Licitación ↔ Monetario** hay un cargador que acepta directamente los archivos oficiales,
-sin pasar por `datos_informe.xlsx`:
+sin pasar por `datos_informe.xlsx`. Hay dos fuentes, y **no son igual de confiables**:
 
-- **Comunicado de resultados (PDF)** de la Secretaría de Finanzas → se parsea en el navegador (pdf.js) y
-  arma automáticamente ofertas recibidas, VE ofertado/adjudicado, el detalle por instrumento y la
-  composición de lo emitido.
-- **Colocaciones de deuda (Excel, opcional)** de la Oficina Nacional de Crédito Público → se parsea con
-  SheetJS y, si alguna fila coincide con la fecha de la licitación que estás viendo, marca qué instrumentos
-  son nuevos y cuáles son reaperturas.
+- **Colocaciones de deuda (Excel) — recomendado.** Es una tabla con columnas fijas (Nombre del Instrumento,
+  Fecha colocación, Valor Nominal, Valor Efectivo, etc.), así que el parseo (con SheetJS) es robusto y no
+  depende del mes. Arma automáticamente **una licitación por cada fecha de colocación distinta que tenga
+  el archivo** — subís el registro entero una sola vez y aparecen todas en el selector de golpe, cada una
+  con el detalle de instrumentos colocados (moneda, vencimiento, VN, VE, precio de emisión, vida promedio)
+  y marcando cuáles son instrumentos nuevos y cuáles reaperturas. Limitación: el registro solo tiene lo
+  efectivamente **adjudicado** — no incluye ofertas recibidas ni montos ofertados.
+- **Comunicado de resultados (PDF), opcional.** Complementa al Excel sumando ofertas recibidas y montos
+  ofertados para la fecha de ese comunicado puntual (dato que no está en ningún otro lado). El problema es
+  que el PDF **cambia de formato de un comunicado a otro** (a veces trae un texto descriptivo antes de las
+  tablas, cambia el orden de columnas, etc.), y el parseo es heurístico — busca patrones de texto, no lee
+  una tabla real. Cuando el formato no coincide con el que sabe leer, hay un chequeo de sanidad que corta el
+  proceso y avisa en vez de mostrar datos mezclados o incorrectos. Si un PDF puntual no anda, no hay mucho
+  margen para arreglarlo genéricamente — habría que ajustar el parser a mano contra ese PDF nuevo.
+
+Si subís los dos para la misma fecha, se combinan en una sola licitación (no se pisan ni duplican).
 
 Todo el procesamiento pasa en el navegador — nada se sube a ningún servidor. Por eso mismo **no queda
 guardado**: es visible solo en esa pestaña del navegador mientras no se recargue la página, y no lo ve
-nadie más que entre al sitio. Para que quede publicado de forma permanente, hay que pasar el PDF (y el
-Excel, si aplica) para sumarlos al repositorio con la vía A.
+nadie más que entre al sitio. Para que quede publicado de forma permanente, hay que pasar los archivos
+para sumarlos al repositorio con la vía A.
 
 Limitación conocida: como ninguna de las dos fuentes trae los "vencimientos del día", el cargador no
-calcula rollover automáticamente (esa cifra sigue siendo manual, vía `datos_informe.xlsx`). Tampoco cruza
-por nombre de instrumento entre PDF y Excel — lo hace por fecha de colocación, así que si las fechas de
-los dos archivos no se solapan, no va a mostrar ningún cruce (no es un error, simplemente no hay nada que
-cruzar).
+calcula rollover automáticamente (esa cifra sigue siendo manual, vía `datos_informe.xlsx`).
 
 ## Estructura
 

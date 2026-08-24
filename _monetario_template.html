@@ -215,17 +215,22 @@
           queda archivada acá, así no se pierde al subir la siguiente.</p>
 
         <div class="help-box" id="lic-upload-box">
-          <b>Cargar una licitación nueva:</b> subí acá el <b>comunicado de resultados (PDF)</b> de la Secretaría
-          de Finanzas y se procesa en tu navegador — no se sube a ningún servidor. Se agrega a la lista de acá
-          abajo para que la veas al toque, pero <b>no queda guardada</b>: si recargás la página, desaparece.
-          Para que quede disponible para siempre (y para cualquiera que entre al sitio), pasame el PDF y lo
-          sumo al repositorio como las demás.
+          <b>Cargar licitaciones nuevas:</b> subí acá el <b>Excel de Colocaciones de Deuda</b> de la Oficina
+          Nacional de Crédito Público (recomendado — es una tabla, no cambia de formato) y/o el <b>comunicado
+          de resultados (PDF)</b> de la Secretaría de Finanzas. Todo se procesa en tu navegador, no se sube a
+          ningún servidor. El Excel arma automáticamente <b>una licitación por cada fecha de colocación</b>
+          que tenga adentro (podés subir el registro entero y se agregan todas de una); el PDF suma, además,
+          ofertas recibidas y montos ofertados (dato que no está en el Excel) para la fecha de ese comunicado
+          — el formato del PDF cambia bastante de un comunicado a otro, así que a veces no se puede leer.
+          Se agregan a la lista de acá abajo para que las veas al toque, pero <b>no quedan guardadas</b>: si
+          recargás la página, desaparecen. Para que queden disponibles para siempre (y para cualquiera que
+          entre al sitio), pasame los archivos y los sumo al repositorio.
           <div class="toolbar" style="margin:10px 0 4px;">
-            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Comunicado de resultados (PDF)
-              <input type="file" id="lic-pdf-input" accept="application/pdf">
-            </label>
-            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Colocaciones de deuda (Excel, opcional)
+            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Colocaciones de deuda (Excel — recomendado)
               <input type="file" id="lic-xlsx-input" accept=".xlsx,.xls">
+            </label>
+            <label style="flex-direction:column;align-items:flex-start;gap:2px;">Comunicado de resultados (PDF, opcional)
+              <input type="file" id="lic-pdf-input" accept="application/pdf">
             </label>
           </div>
           <div id="lic-upload-status"></div>
@@ -684,7 +689,7 @@ function setupLicSelect(){
   wrap.style.display = '';
   sel.innerHTML = LICITACIONES.map((l,i) => {
     const fecha = l.fecha || `s-fecha-${i}`;
-    const titulo = l.subtitulo || l.titulo || fecha;
+    const titulo = l.titulo || l.subtitulo || fecha;
     return `<option value="${fecha}">${titulo}</option>`;
   }).join('');
   sel.value = licSelected;
@@ -697,7 +702,7 @@ function renderLicitacion(){
   const lic = LICITACIONES.find(l => (l.fecha || 0) === licSelected) || LICITACIONES[0];
 
   let html = '';
-  const localBadge = lic.origen === 'pdf'
+  const localBadge = (lic.origen === 'pdf' || lic.origen === 'excel' || lic.origen === 'mixto')
     ? ' <span style="display:inline-block;background:var(--amber-light);color:var(--amber);font-size:10.5px;font-weight:700;border-radius:6px;padding:2px 7px;vertical-align:middle;">cargada localmente · no persistida</span>'
     : '';
   html += `<p class="section-sub" style="margin-top:-8px;"><b>${lic.titulo||''}</b>${localBadge}<br>${lic.subtitulo||''}</p>`;
@@ -751,16 +756,41 @@ function renderLicitacion(){
     html += '</tbody></table></div>';
   }
 
-  if (lic.colocacionesDetalle && lic.colocacionesDetalle.length) {
-    html += '<div class="section-title" style="font-size:14px;margin-top:8px;">Cruce con colocaciones de deuda (Excel cargado)</div>';
-    html += '<p class="section-sub" style="margin-top:-8px;">Instrumentos con fecha de colocación igual a la de esta licitación, según el registro de la Oficina Nacional de Crédito Público.</p>';
+  if (lic.resumenExcel) {
+    const re = lic.resumenExcel;
     html += '<div class="lic-cards">';
-    lic.colocacionesDetalle.forEach(c => {
+    html += `<div class="lic-card"><div class="k">VE adjudicado (pesos)</div><div class="v">$${arNumber(re.veAdjudicadoArs/1e6,2)} Bn</div></div>`;
+    if (re.veAdjudicadoUsd) html += `<div class="lic-card"><div class="k">VE adjudicado (USD)</div><div class="v">USD ${arNumber(re.veAdjudicadoUsd,0)} M</div></div>`;
+    html += `<div class="lic-card"><div class="k">Instrumentos colocados</div><div class="v">${arNumber(re.cantidadInstrumentos,0)}</div></div>`;
+    html += '</div>';
+    html += `<p class="section-sub" style="margin-top:-8px;font-size:11.5px;">Extraído del registro de Colocaciones de Deuda (Oficina Nacional de Crédito Público). Este registro no incluye ofertas recibidas ni montos ofertados — solo lo efectivamente adjudicado.</p>`;
+  }
+
+  if (lic.instrumentosExcel && lic.instrumentosExcel.length) {
+    const TIPO_LABELS_UI = { bono:'Bono', letra:'Letra', letra_isp:'Letra ISP', otra_operacion:'Otra operación', canje:'Canje/conversión' };
+    html += '<div class="section-title" style="font-size:14px;margin-top:8px;">Instrumentos colocados (extraído del Excel de Colocaciones)</div>';
+    html += '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">';
+    html += `<thead><tr style="text-align:left;border-bottom:1px solid var(--line);">
+      <th style="padding:6px 8px;">Instrumento</th><th style="padding:6px 8px;">Tipo</th><th style="padding:6px 8px;">Moneda</th>
+      <th style="padding:6px 8px;">Vencimiento</th><th style="padding:6px 8px;">VN</th><th style="padding:6px 8px;">VE</th>
+      <th style="padding:6px 8px;">Precio emisión</th><th style="padding:6px 8px;">Vida promedio</th></tr></thead><tbody>`;
+    lic.instrumentosExcel.forEach(c => {
+      const moneda = c.moneda === 'MONEDA EXTRANJERA' ? 'USD' : '$';
       const tagColor = c.nuevo ? 'var(--green)' : 'var(--ink-soft)';
       const tag = c.nuevo ? 'nuevo' : 'reapertura';
-      html += `<div class="lic-card"><div class="k">${c.nombre} <span style="font-weight:700;color:${tagColor}">· ${tag}</span></div><div class="v" style="font-size:14px;">VE $${arNumber(c.valor_efectivo,0)}</div></div>`;
+      html += `<tr style="border-bottom:1px solid #F0F2F7;">
+        <td style="padding:6px 8px;">${c.nombre} <span style="font-weight:700;color:${tagColor};font-size:10.5px;">· ${tag}</span></td>
+        <td style="padding:6px 8px;color:var(--ink-soft);">${TIPO_LABELS_UI[c.tipo]||c.tipo}</td>
+        <td style="padding:6px 8px;">${moneda}</td>
+        <td style="padding:6px 8px;">${c.vencimiento ? fmtDate(c.vencimiento) : 's/d'}</td>
+        <td style="padding:6px 8px;">${c.valor_nominal!==null && c.valor_nominal!==undefined ? arNumber(c.valor_nominal,1) : 's/d'}</td>
+        <td style="padding:6px 8px;">${c.valor_efectivo!==null && c.valor_efectivo!==undefined ? arNumber(c.valor_efectivo,1) : 's/d'}</td>
+        <td style="padding:6px 8px;">${c.precio_emision!==null && c.precio_emision!==undefined ? arNumber(c.precio_emision,2) : 's/d'}</td>
+        <td style="padding:6px 8px;">${c.vida_promedio!==null && c.vida_promedio!==undefined ? arNumber(c.vida_promedio,2) : 's/d'}</td>
+      </tr>`;
     });
-    html += '</div>';
+    html += '</tbody></table></div>';
+    html += `<p class="section-sub" style="margin-top:4px;font-size:11.5px;">VN y VE en millones de la moneda indicada. "Nuevo" / "reapertura" se calcula comparando contra todas las colocaciones previas del mismo instrumento en el archivo cargado.</p>`;
   }
 
   if (lic.monetizacion && lic.monetizacion.length) {
@@ -1022,6 +1052,16 @@ const SECCION_LABELS = {
   'Instrumentos Dólar Linked': 'Dólar linked',
   'BONAR USD': 'Dólares (bono, equiv. $)',
 };
+// -- chequeos básicos de sanidad: el parseo del PDF es heurístico y el formato del comunicado
+// -- cambia de un mes a otro, así que puede "andar" pero devolver datos mezclados/incorrectos
+// -- en vez de fallar directamente. Mejor avisar que mostrar algo mal.
+function validateParsedComunicado(parsed){
+  if (!parsed.instrumentos.length) return 'no se reconoció ningún instrumento';
+  if (parsed.instrumentos.some(i => (i.nombre||'').length > 180)) return 'el nombre de un instrumento salió demasiado largo — el parseo probablemente mezcló texto de otra parte del PDF';
+  const veUsd = parsed.totalsUsd && parsed.totalsUsd['Total Valor Efectivo Adjudicado (*)'];
+  if (veUsd && veUsd[0] && veUsd[0].currency && veUsd[0].currency !== 'USD') return 'los totales en dólares no se reconocieron correctamente';
+  return null;
+}
 function buildLicitacionFromPdf(parsed, fileName){
   const ofertasArs = sumTotalsCol(parsed.totalsPesos, 'Cantidad de Ofertas Recibidas', 2);
   const ofertasUsd = sumTotalsCol(parsed.totalsUsd, 'Cantidad de Ofertas Recibidas', 0);
@@ -1054,6 +1094,60 @@ function buildLicitacionFromPdf(parsed, fileName){
   };
 }
 
+// -- arma UNA licitación por cada fecha de colocación distinta del Excel (fuente robusta: --
+// -- es una tabla con columnas fijas, a diferencia del PDF que cambia de formato mes a mes) --
+const TIPO_LABELS_COMPOSICION = { bono:'Bonos', letra:'Letras', letra_isp:'Letras ISP', otra_operacion:'Otras operaciones', canje:'Canjes/conversiones' };
+function buildLicitacionesFromColocaciones(colocaciones){
+  const fechas = Array.from(new Set(colocaciones.map(c => c.fecha_colocacion))).filter(Boolean).sort();
+  return fechas.map(fecha => {
+    const items = colocacionesEnFecha(fecha, colocaciones)
+      .map(c => Object.assign({}, c, { nuevo: esInstrumentoNuevo(c.nombre, c.fecha_colocacion, colocaciones) }));
+    const veAdjudicadoArs = items.filter(c => c.moneda === 'MONEDA NACIONAL').reduce((a,c)=>a+(Number(c.valor_efectivo)||0),0);
+    const veAdjudicadoUsd = items.filter(c => c.moneda === 'MONEDA EXTRANJERA').reduce((a,c)=>a+(Number(c.valor_efectivo)||0),0);
+    const byTipo = {};
+    items.filter(c => c.moneda === 'MONEDA NACIONAL').forEach(c => {
+      const v = Number(c.valor_efectivo) || 0;
+      if (!v) return;
+      byTipo[c.tipo] = (byTipo[c.tipo]||0) + v;
+    });
+    const composicion = veAdjudicadoArs ? Object.entries(byTipo).map(([tipo, monto]) => ({
+      categoria: TIPO_LABELS_COMPOSICION[tipo] || tipo, monto, pct: monto/veAdjudicadoArs,
+    })) : [];
+    return {
+      origen: 'excel', fecha,
+      titulo: 'Licitación del Tesoro — ' + fmtDate(fecha),
+      subtitulo: `Cargada localmente desde el registro de Colocaciones de Deuda (${items.length} instrumento${items.length===1?'':'s'} colocado${items.length===1?'':'s'}).`,
+      resumenExcel: { veAdjudicadoArs, veAdjudicadoUsd, cantidadInstrumentos: items.length },
+      composicion, instrumentosExcel: items,
+    };
+  });
+}
+
+// -- combina una licitación nueva con una existente de la misma fecha, sin pisar datos que --
+// -- ya estaban (por ejemplo, si primero se cargó el PDF y después el Excel, o viceversa) --
+function mergeOrAddLicitacion(lic){
+  const idx = LICITACIONES.findIndex(l => l.fecha && lic.fecha && l.fecha === lic.fecha);
+  if (idx < 0) { LICITACIONES.push(lic); return; }
+  const ex = LICITACIONES[idx];
+  LICITACIONES[idx] = {
+    fecha: ex.fecha || lic.fecha,
+    titulo: ex.titulo || lic.titulo,
+    subtitulo: ex.subtitulo || lic.subtitulo,
+    rollover: ex.rollover || lic.rollover,
+    resumenPdf: ex.resumenPdf || lic.resumenPdf,
+    resumenExcel: ex.resumenExcel || lic.resumenExcel,
+    instrumentos: ex.instrumentos || lic.instrumentos,
+    instrumentosExcel: ex.instrumentosExcel || lic.instrumentosExcel,
+    monetizacion: ex.monetizacion || lic.monetizacion,
+    timeline: ex.timeline || lic.timeline,
+    composicion: (ex.composicion && ex.composicion.length) ? ex.composicion : lic.composicion,
+    origen: (ex.origen && lic.origen && ex.origen !== lic.origen) ? 'mixto' : (ex.origen || lic.origen),
+  };
+}
+function sortLicitaciones(){
+  LICITACIONES.sort((a,b) => (b.fecha||'') < (a.fecha||'') ? -1 : ((b.fecha||'') > (a.fecha||'') ? 1 : 0));
+}
+
 // -- wiring de los inputs de archivo --
 let loadedColocaciones = [];
 const licPdfInput = document.getElementById('lic-pdf-input');
@@ -1075,21 +1169,21 @@ if (licPdfInput) licPdfInput.addEventListener('change', async (e) => {
       pagesItems.push(content.items.map(it => it.str));
     }
     const parsed = parseComunicado(pagesItems);
-    if (!parsed.instrumentos.length) {
-      licUploadStatus.innerHTML = '<div class="warn-box" style="margin:6px 0 0;">No se reconoció ningún instrumento en el PDF — revisá que sea el "Comunicado de Resultados" de la Secretaría de Finanzas sin modificar.</div>';
+    const problema = validateParsedComunicado(parsed);
+    if (problema) {
+      licUploadStatus.innerHTML = `<div class="warn-box" style="margin:6px 0 0;">No se pudo leer este PDF con confianza (${problema}) — el formato de los comunicados cambia bastante de un mes a otro y este no coincide con el que sabe leer el parseo. Si tenés el <b>Excel de Colocaciones de Deuda</b> con este mismo período, subilo en cambio: es una tabla con columnas fijas, mucho más estable que el PDF.</div>`;
       return;
     }
     const lic = buildLicitacionFromPdf(parsed, file.name);
-    const existingIdx = LICITACIONES.findIndex(l => l.fecha && lic.fecha && l.fecha === lic.fecha);
-    if (existingIdx >= 0) LICITACIONES.splice(existingIdx, 1);
-    LICITACIONES.unshift(lic);
+    mergeOrAddLicitacion(lic);
+    sortLicitaciones();
     licSelected = lic.fecha || 0;
     setupLicSelect();
     renderLicitacion();
     licUploadStatus.innerHTML = `<div class="help-box" style="margin:6px 0 0;">Cargado: <b>${lic.titulo}</b> — ya la podés ver más abajo. Recordá que esto no queda guardado si recargás la página.</div>`;
   } catch (err) {
     console.error(err);
-    licUploadStatus.innerHTML = `<div class="warn-box" style="margin:6px 0 0;">No se pudo procesar el PDF (${(err && err.message) || err}). Probá con el comunicado original sin editar.</div>`;
+    licUploadStatus.innerHTML = `<div class="warn-box" style="margin:6px 0 0;">No se pudo procesar el PDF (${(err && err.message) || err}). Probá con el <b>Excel de Colocaciones de Deuda</b> en cambio — es más robusto que el PDF.</div>`;
   }
 });
 
@@ -1107,14 +1201,14 @@ if (licXlsxInput) licXlsxInput.addEventListener('change', async (e) => {
       licUploadStatus.innerHTML = '<div class="warn-box" style="margin:6px 0 0;">No se reconoció ninguna colocación en el Excel — revisá que sea el registro de "Colocaciones de Deuda" con las hojas Bonos/Letras/etc. sin modificar.</div>';
       return;
     }
-    const lic = LICITACIONES.find(l => (l.fecha || 0) === licSelected);
-    if (lic && lic.fecha) {
-      const enFecha = colocacionesEnFecha(lic.fecha, loadedColocaciones)
-        .map(c => Object.assign({}, c, { nuevo: esInstrumentoNuevo(c.nombre, c.fecha_colocacion, loadedColocaciones) }));
-      if (enFecha.length) { lic.colocacionesDetalle = enFecha; renderLicitacion(); }
-    }
-    const fechas = Array.from(new Set(loadedColocaciones.map(c=>c.fecha_colocacion))).sort();
-    licUploadStatus.innerHTML = `<div class="help-box" style="margin:6px 0 0;">Cargadas <b>${loadedColocaciones.length}</b> colocaciones (${fechas[0]} a ${fechas[fechas.length-1]}). Si alguna coincide con la fecha de la licitación que estás viendo, se va a mostrar el cruce (nuevo vs. reapertura) ahí abajo.</div>`;
+    const nuevasLicitaciones = buildLicitacionesFromColocaciones(loadedColocaciones);
+    nuevasLicitaciones.forEach(mergeOrAddLicitacion);
+    sortLicitaciones();
+    licSelected = LICITACIONES.length ? LICITACIONES[0].fecha : licSelected;
+    setupLicSelect();
+    renderLicitacion();
+    const fechas = nuevasLicitaciones.map(l => l.fecha);
+    licUploadStatus.innerHTML = `<div class="help-box" style="margin:6px 0 0;">Cargadas <b>${loadedColocaciones.length}</b> colocaciones — se agregaron/actualizaron <b>${fechas.length}</b> licitaciones en el selector de acá abajo (${fechas[0]} a ${fechas[fechas.length-1]}). Ya podés elegir cualquiera y ver el detalle.</div>`;
   } catch (err) {
     console.error(err);
     licUploadStatus.innerHTML = `<div class="warn-box" style="margin:6px 0 0;">No se pudo procesar el Excel (${(err && err.message) || err}).</div>`;
